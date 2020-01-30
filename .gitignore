@@ -1,4 +1,9 @@
 /obj_xm1000
+/obj_native
 contiki-xm1000.a
 contiki-xm1000.map
 comcrypt.xm1000
+contiki-native.a
+contiki-native.map
+comcrypt.native
+symbols.*
