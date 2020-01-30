@@ -1,6 +1,6 @@
 #include "contiki.h"
 #include <stdio.h>
-#include "lib/aes-128.h"
+#include "./encrypt.h"
 
 #define PLAIN_TEXT_SIZE        AES_128_BLOCK_SIZE * 3
 
@@ -13,40 +13,7 @@ void print_text(uint8_t* text, uint8_t length){
     printf("\n");
 }
 
-void pkcs7_pad(uint8_t *block, uint8_t block_length) {
-  // do nothing at the moment - not sure if it is neccesary for our purpose
-}
 
-void xor_blocks(uint8_t *block_1_and_result, uint8_t *block_2, uint8_t block_size) {
-  uint8_t i;
-  for (i = 0; i < block_size; i++) {
-    block_1_and_result[i] ^= block_2[i];
-  }
-}
-
-void aes_encrypt_cbc(uint8_t *plaintext_and_result, uint8_t *iv, uint32_t length, uint8_t *key) {
-  const uint8_t block_size = AES_128_BLOCK_SIZE;
-  uint8_t i;
-
-  AES_128.set_key(key);
-
-  uint32_t blocks_length = length / block_size;
-  const uint8_t remainder = length % block_size;
-  if (remainder > 0) {
-    // Pad last block
-    blocks_length = blocks_length + 1;
-    pkcs7_pad(plaintext_and_result + blocks_length * block_size, remainder);
-  }
-
-  xor_blocks(plaintext_and_result, iv, block_size);
-  AES_128.encrypt(plaintext_and_result);
-
-  for (i = 1; i < blocks_length; i++) {
-    xor_blocks(plaintext_and_result + i * block_size, plaintext_and_result + (i - 1) * block_size, block_size);
-    AES_128.encrypt(plaintext_and_result + i * block_size);
-  }
-  
-}
 
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
@@ -54,7 +21,7 @@ AUTOSTART_PROCESSES(&comcrypt_process);
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(comcrypt_process, ev, data)
 {
-  // 16 = 128 bit key
+  // AES_128_KEY_LENGTH = 16 = 128 bit key
   // Key: 8a0439ed 5d393558 9b7c77c8 62a7e135
   uint8_t key[AES_128_KEY_LENGTH] = { 
     0x8a, 0x04, 0x39, 0xed,
@@ -88,9 +55,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
 
   print_text(plainText, PLAIN_TEXT_SIZE);
 
-  // AES_128.set_key(key);
-  // AES_128.encrypt(plainText);
-  aes_encrypt_cbc(plainText, iv, PLAIN_TEXT_SIZE, key);
+  ENCRYPT.aes_encrypt_cbc(plainText, iv, PLAIN_TEXT_SIZE, key);
 
   print_text(plainText, PLAIN_TEXT_SIZE);
   
