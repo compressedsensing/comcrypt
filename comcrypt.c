@@ -45,20 +45,9 @@ PROCESS_THREAD(comcrypt_process, ev, data)
       0x62, 0xa7, 0xe1, 0x35};
 
   float sensor_reading[12] = {5.4, 8.2, 3.7, 9.5, 3.7, 7.3, 1.2, 2.4, 6.6, 4.3, 7.2, 4.1};
+
   float result[12] = {};
   unsigned int block_len = 12;
-
-  printf("\n");
-
-  COMPRESS.dct_transform(&sensor_reading, &result, block_len);
-
-  int i;
-  for (i = 0; i < block_len; i++)
-  {
-    printf("%.4f\t", result[i]);
-  }
-
-  printf("\n");
 
   // IV: 52096ad53036a538bf40a39e81f3d7fb
   static unsigned char iv[16] = {
@@ -71,6 +60,26 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   ENCRYPT.aes_encrypt_cbc(plainText, iv, PLAIN_TEXT_SIZE, key);
 
   print_text(plainText, PLAIN_TEXT_SIZE);
+
+  printf("\n");
+
+  COMPRESS.dct_transform(&sensor_reading, &result, block_len);
+
+  uint8_t *array;
+  array = (uint8_t *)(&result);
+
+  int i;
+  for (i = 0; i < block_len; i++)
+  {
+    printf("%.4f\t", result[i]);
+  }
+  ENCRYPT.aes_encrypt_cbc(array, iv, PLAIN_TEXT_SIZE, key);
+
+  printf("\n");
+
+  print_text(array, PLAIN_TEXT_SIZE);
+
+  printf("\n");
 
   PROCESS_END();
 }
