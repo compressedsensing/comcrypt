@@ -14,6 +14,10 @@ struct encryption_driver {
    * \brief Encrypts using CBC mode. IMPORTANT: plaintext_and_result should be divisable with AES_128_BLOCK_SIZE
    */
   void (* aes_encrypt_cbc)(uint8_t *plaintext_and_result, uint8_t *iv, uint32_t length, uint8_t *key);
+  /**
+   * \brief Encrypts using CTR mode. IMPORTANT: plaintext_and_result should be divisable with AES_128_BLOCK_SIZE
+   */
+  void (* aes_encrypt_ctr)(uint8_t *plaintext_and_result, uint8_t *iv, uint32_t length, uint8_t *key);
 };
 
 extern const struct encryption_driver ENCRYPT;

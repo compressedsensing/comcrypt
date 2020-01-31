@@ -57,7 +57,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
 
   print_text(plainText, PLAIN_TEXT_SIZE);
 
-  ENCRYPT.aes_encrypt_cbc(plainText, iv, PLAIN_TEXT_SIZE, key);
+  ENCRYPT.aes_encrypt_ctr(plainText, iv, PLAIN_TEXT_SIZE, key);
 
   print_text(plainText, PLAIN_TEXT_SIZE);
 
@@ -73,7 +73,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   {
     printf("%.4f\t", result[i]);
   }
-  ENCRYPT.aes_encrypt_cbc(array, iv, PLAIN_TEXT_SIZE, key);
+  ENCRYPT.aes_encrypt_ctr(array, iv, PLAIN_TEXT_SIZE, key);
 
   printf("\n");
 
