@@ -10,11 +10,11 @@
 struct compression_driver {
   
   /**
-   * \brief Encrypts using CBC mode. IMPORTANT: plaintext_and_result should be divisable with AES_128_BLOCK_SIZE
+   * \brief Transforms data into via the DCT-II transform.
+   * https://en.wikipedia.org/wiki/Discrete_cosine_transform#DCT-II
    */
   void (* dct_transform)(float* input_vector,float* res, unsigned int block_size);
 
-  // void (* aes_encrypt_cbc)(uint8_t *plaintext_and_result, uint8_t *iv, uint32_t length, uint8_t *key);
 };
 
 

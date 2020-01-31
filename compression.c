@@ -1,6 +1,6 @@
 #include "./compression.h"
 
-static void dct_transform(float* input_vector,float* result, unsigned int block_size)
+static void dct_transform(float *input_vector, float *result, unsigned int block_size)
 {
     float factor = M_PI / block_size;
     size_t i, j; //Predefine loop reference
@@ -14,6 +14,4 @@ static void dct_transform(float* input_vector,float* result, unsigned int block_
     }
 }
 
-const struct compression_driver compression_driver = {
-  dct_transform
-};
+const struct compression_driver compression_driver = {dct_transform};
