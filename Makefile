@@ -5,6 +5,6 @@ all: $(CONTIKI_PROJECT)
 
 CONTIKI = ../..
 
-PROJECT_SOURCEFILES += encrypt.c compression.c
+PROJECT_SOURCEFILES += encrypt.c compression.c fixedpoint.c
 
 include $(CONTIKI)/Makefile.include
