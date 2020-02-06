@@ -8,14 +8,9 @@
 #define FP fixed_point_driver
 #define FP_PI 0b00000000011001001000011111101101
 #define FP_PI21_16 0b00000000000000000001100100100001
-// 00000000000000000001100100100001
-
-// 1 0 0 0 0 1 0 0 1 0 0 1 1  
 
 #define IPART 21
 #define FPART 11
-
-
 
 typedef union FIXED11_21tag {
     int32_t full;
@@ -40,7 +35,6 @@ struct fixed_point_driver
     double (* fixed_to_float)(FIXED11_21 input);
     FIXED11_21 (* float_to_fixed)(double input);
 };
-
 
 extern const struct fixed_point_driver FP;
 

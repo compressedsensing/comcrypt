@@ -86,15 +86,13 @@ static FIXED11_21 fp_multiply(FIXED11_21 a, FIXED11_21 b)
 }
 
 /**
- * @brief Multiplies two fixed point represented numbers with each other
- * @param a fixed number to be multiplied
- * @param b fixed number to be multiplied
- * @return result of the multiplication
+ * @brief Adds two fixed point represented numbers with each other
+ * @param a fixed number to be added
+ * @param b fixed number to be added
+ * @return result of the addition
  */
 static FIXED11_21 fp_add(FIXED11_21 a, FIXED11_21 b)
 {
-    // printBits32(float_to_fixed(0.5).full);
-
     FIXED11_21 result;
 
     result.full = a.full + b.full; /* Has a risk of overflowing */
@@ -103,10 +101,10 @@ static FIXED11_21 fp_add(FIXED11_21 a, FIXED11_21 b)
 }
 
 /**
- * @brief Multiplies two fixed point represented numbers with each other
- * @param a fixed number to be multiplied
- * @param b fixed number to be multiplied
- * @return result of the multiplication
+ * @brief Subtracts two fixed point represented numbers with each other
+ * @param a fixed number to be subtract from
+ * @param b fixed number to be subtracted
+ * @return result of the subtracted
  */
 static FIXED11_21 fp_subtract(FIXED11_21 a, FIXED11_21 b)
 {
@@ -117,6 +115,12 @@ static FIXED11_21 fp_subtract(FIXED11_21 a, FIXED11_21 b)
     return result;
 }
 
+/**
+ * @brief Provides the b'th power of number a
+ * @param a Number to get power from
+ * @param b The power qoutient
+ * @return result of the power
+ */
 static FIXED11_21 fp_pow(FIXED11_21 a, int b)
 {
     int i;
@@ -141,6 +145,11 @@ static FIXED11_21 fp_pow(FIXED11_21 a, int b)
     return result;
 }
 
+/**
+ * @brief Provides n factorial
+ * @param a Factorial start number
+ * @return Factorial of a
+ */
 static int32_t factorial(int a)
 {
     int32_t result = 1;
@@ -153,6 +162,12 @@ static int32_t factorial(int a)
     return result;
 }
 
+/**
+ * @brief Division of FP numbers
+ * @param a numinator
+ * @param b denominator
+ * @return a/b
+ */
 static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
 {
 
@@ -167,6 +182,12 @@ static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
     return result;
 }
 
+/**
+ * @brief Taylor approximation of sin function
+ * @param a number inside sin(a)
+ * @param b Order of taylor polynomiel
+ * @return sin(a)
+ */
 static FIXED11_21 fp_sin(FIXED11_21 a, int precision)
 {
     FIXED11_21 result, minus, div1;
@@ -201,6 +222,12 @@ static FIXED11_21 fp_sin(FIXED11_21 a, int precision)
     return result;
 }
 
+/**
+ * @brief Taylor approximation of cos function
+ * @param a number inside cos(a)
+ * @param b Order of taylor polynomiel
+ * @return cos(a)
+ */
 static FIXED11_21 fp_cos(FIXED11_21 a, int precision)
 {
     FIXED11_21 div, PI;
