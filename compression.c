@@ -15,10 +15,18 @@ static void dct_transform(float *input_vector, float *result, unsigned int block
 }
 
 int pushBits(uint16_t huff_code, uint8_t *bitstring, uint16_t bitstring_length) {
-
+    int i;
+    for (i = 0; i < sizeof(uint16_t) * 8; i++) {
+        // Find first 1 from most significant bit
+        // From that first 1 to the least significant bit - or that with the 
+        // bitstring from length and i - sizeof(uint16_t) * 8 forward
+        // Return i - sizeof(uint16_t) * 8
+    }
+    // If none return 1 - there should be a single zero which there already is
+    return 1;
 }
 
-static struct huffman_data huffman_encode(uint8_t *block, uint16_t length) {
+static void huffman_encode(uint8_t *block, uint16_t length, struct huffman_data *h_data) {
     uint16_t i;
     uint8_t firstHalf;
     uint8_t secondHalf;
@@ -37,13 +45,8 @@ static struct huffman_data huffman_encode(uint8_t *block, uint16_t length) {
         huff_code = CODEBOOK[secondHalf];
         last_bit_position = pushBits(huff_code, bitstring, last_bit_position);
     }
-
-    struct huffman_data h = {
-        last_bit_position,
-        bitstring
-    };
-
-    return h;
+    h_data->length = last_bit_position;
+    h_data->bits = bitstring;
 } 
 
 const struct compression_driver compression_driver = {dct_transform};
