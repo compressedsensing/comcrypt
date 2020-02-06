@@ -12,7 +12,7 @@
 //         printf("%i ", num & 0x01);
 //         num = num >> 1;
 //     }
-// }
+// }1
 
 // /**
 //  * Helper function that prints a 64-bit fractional bits 

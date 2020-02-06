@@ -20,7 +20,10 @@ struct compression_driver
   /**
    * @brief Thresholds the DCT vector.
    */
-  void (*threshold)(float *dct_vector, float threshold, unsigned int length);
+  void (*threshold)(FIXED11_21 *dct_vector, FIXED11_21 threshold, unsigned int length);
+
+  FIXED11_21* (*simple_truncate)(FIXED11_21 *dct_vector,FIXED11_21 *result, unsigned int length);
+
 };
 
 extern const struct compression_driver COMPRESS;

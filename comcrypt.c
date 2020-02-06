@@ -64,10 +64,9 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   // c = FP.fp_pow(a,3);
   // c = FP.fp_sin(a,8);
 
-  FP.fp_add(a,b);
+  FP.fp_add(a, b);
   // c = FP.fp_sin(a, 5);
-  
-  
+
   // c = a;
 
   // c.full = a.full % b.full;
@@ -90,16 +89,23 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   {
     fixed_sensor_reading[i] = FP.float_to_fixed(sensor_reading[i]);
   }
-  
+
+  b = FP.float_to_fixed(3.5);
 
   COMPRESS.dct_transform(&fixed_sensor_reading, &fixed_result, block_len);
+  COMPRESS.threshold(&fixed_result, b, block_len);
+  
+  FIXED11_21 trunched[5];
+  COMPRESS.simple_truncate(&fixed_result,&trunched,12);
+
 
   uint8_t *array;
   array = (uint8_t *)(&result);
 
-  for (i = 0; i < block_len; i++)
+  for (i = 0; i < 5; i++)
   {
-    printf("%.4f\t", FP.fixed_to_float(fixed_result[i]));
+    // printf("%.4f\t", FP.fixed_to_float(fixed_result[i]));
+     printf("%.4f\t", FP.fixed_to_float(trunched[i]));
   }
   // ENCRYPT.aes_encrypt_ctr(array, iv, PLAIN_TEXT_SIZE, key);
 
