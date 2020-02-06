@@ -7,7 +7,13 @@
 
 #define FP fixed_point_driver
 #define FP_PI 0b00000000011001001000011111101101
+#define FP_PI21_16 0b00000000000000000001100100100001
+// 00000000000000000001100100100001
 
+// 1 0 0 0 0 1 0 0 1 0 0 1 1  
+
+#define IPART 21
+#define FPART 11
 
 
 
@@ -15,8 +21,8 @@ typedef union FIXED11_21tag {
     int32_t full;
     struct part11_21tag
     {
-        int32_t fraction : 21;
-        int32_t integer : 11;
+        int32_t fraction : FPART;
+        int32_t integer : IPART;
     } part;
 } FIXED11_21;
 

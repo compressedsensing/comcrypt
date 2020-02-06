@@ -5,25 +5,49 @@
 /**
  * Helper function that prints a 32-bit fractional bits 
  */
-static void printBits32(int32_t num)
+// static void printBits32(int32_t num)
+// {
+//     for (int bit = 0; bit < (sizeof(int32_t) * 8); bit++)
+//     {
+//         printf("%i ", num & 0x01);
+//         num = num >> 1;
+//     }
+// }
+
+// /**
+//  * Helper function that prints a 64-bit fractional bits 
+//  */
+// static void printBits64(int64_t num)
+// {
+//     for (int bit = 0; bit < (sizeof(int64_t) * 8); bit++)
+//     {
+//         printf("%li ", num & 0x01);
+//         num = num >> 1;
+//     }
+// }
+
+/**
+ * @brief Converts a fixed point representation number to a double
+ * @param input The fixed point value
+ * @return float(double) representation of input value
+ */
+static double fixed_to_float(FIXED11_21 input)
 {
-    for (int bit = 0; bit < (sizeof(int32_t) * 8); bit++)
-    {
-        printf("%i ", num & 0x01);
-        num = num >> 1;
-    }
+    double res = 0;
+    res = ((double)input.full / (double)(1 << FPART));
+    return res;
 }
 
 /**
- * Helper function that prints a 64-bit fractional bits 
+ * @brief Coverts a float(double) to a fixed_point double 
+ * @param input The input float
+ * @return  fixed point reprensentation of a float
  */
-static void printBits64(int64_t num)
+static FIXED11_21 float_to_fixed(double input)
 {
-    for (int bit = 0; bit < (sizeof(int64_t) * 8); bit++)
-    {
-        printf("%li ", num & 0x01);
-        num = num >> 1;
-    }
+    FIXED11_21 res;
+    res.full = (int32_t)(input * (1 << FPART));
+    return res;
 }
 
 /**
@@ -34,25 +58,29 @@ static void printBits64(int64_t num)
  */
 static FIXED11_21 fp_multiply(FIXED11_21 a, FIXED11_21 b)
 {
-    int64_t tmp, Z;
+    long tmp;
+    long IL;
+
+    // long tmp, Z;
     FIXED11_21 result;
 
-    //Save result in double size
-    tmp = (int64_t)a.full * (int64_t)b.full;
+    // Save result in double size
+    tmp = (long)a.full * (long)b.full;
 
-    //Take out midder section of bits
-    tmp = tmp + (1 << 20);
-    tmp = tmp >> 21;
+    // Take out midder section of bits
+    tmp = tmp + (1 << FPART - 1);
+    tmp = tmp >> FPART;
 
-    //Saturate the result if over or under minimum value.
-    if (tmp > INT32_MAX) /* saturate the result before assignment */
-        Z = INT32_MAX;
-    else if (tmp < INT32_MIN)
-        Z = INT32_MIN;
-    else
-        Z = tmp;
+    // // Saturate the result if over or under minimum value.
+    // if (tmp > INT32_MAX) /* saturate the result before assignment */
+    //     Z = INT32_MAX;
+    // else if (tmp < INT32_MIN)
+    //     Z = INT32_MIN;
+    // else
+    
+    IL = tmp;
 
-    result.full = Z;
+    result.full = IL;
 
     return result;
 }
@@ -65,6 +93,8 @@ static FIXED11_21 fp_multiply(FIXED11_21 a, FIXED11_21 b)
  */
 static FIXED11_21 fp_add(FIXED11_21 a, FIXED11_21 b)
 {
+    // printBits32(float_to_fixed(0.5).full);
+
     FIXED11_21 result;
 
     result.full = a.full + b.full; /* Has a risk of overflowing */
@@ -85,31 +115,6 @@ static FIXED11_21 fp_subtract(FIXED11_21 a, FIXED11_21 b)
     result.full = a.full - b.full; /* Has a risk of overflowing */
 
     return result;
-}
-
-
-/**
- * @brief Converts a fixed point representation number to a double
- * @param input The fixed point value
- * @return float(double) representation of input value
- */
-static double fixed_to_float(FIXED11_21 input)
-{
-    double res = 0;
-    res = ((double)input.full / (double)(1 << 21));
-    return res;
-}
-
-/**
- * @brief Coverts a float(double) to a fixed_point double 
- * @param input The input float
- * @return  fixed point reprensentation of a float
- */
-static FIXED11_21 float_to_fixed(double input)
-{
-    FIXED11_21 res;
-    res.full = (int32_t)(input * (1 << 21));
-    return res;
 }
 
 static FIXED11_21 fp_pow(FIXED11_21 a, int b)
@@ -154,7 +159,7 @@ static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
     int64_t tmp = 0;
     FIXED11_21 result;
 
-    tmp = (int64_t)a.full << 21;
+    tmp = (int64_t)a.full << FPART;
     tmp = tmp + (b.full >> 1);
     tmp = tmp / b.full;
 
@@ -165,41 +170,44 @@ static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
 static FIXED11_21 fp_sin(FIXED11_21 a, int precision)
 {
     FIXED11_21 result, minus, div1;
-    int32_t div;
-    result.full = 0;
-    // minus.part.fraction = 0;
-    minus = float_to_fixed(-1);
-    // printf("Real %f\n", fixed_to_float(minus));
+    int32_t div, sign;
+    result.full = 0; /* Initialize result value*/
 
-    fp_pow(minus, 1);
+    //Set minus to -1
+    minus.part.fraction = 0;
+    minus.part.integer = -1;
 
+    sign = 1; /* Set sign used for values in pi:2pi */
+
+    // Fix input between 0:2*pi
+    a.full = a.full % (2 * FP_PI21_16);
+
+    if (a.full > FP_PI21_16)
+    {
+        a.full -= FP_PI21_16;
+        sign = -1;
+    }
+
+    //Taylor expansion
     int n;
-
     for (n = 0; n < precision; n++)
     {
-        div = factorial((2*n)+1);
-        // div.part.integer = factorial((2 * n) + 1);
-        // div.part.fraction = 0;
-
-        printf("Switcher: %f\n",fixed_to_float(fp_pow(minus, n)));
-        printf("Numerator: %f\n",fixed_to_float(fp_multiply(fp_pow(minus, n), fp_pow(a, (2 * n) + 1))));
-        // printf("DIV: %f\n",fixed_to_float(div));
+        div = factorial((2 * n) + 1);
         div1.full = fp_multiply(fp_pow(minus, n), fp_pow(a, (2 * n) + 1)).full / div;
         result = fp_add(result, div1);
-
-        // result = fp_add(result, (fp_division((fp_multiply(fp_pow(minus, n), fp_pow(a, (2 * n) + 1))), div)));
     }
+
+    result.full = result.full * sign;
     return result;
 }
 
 static FIXED11_21 fp_cos(FIXED11_21 a, int precision)
 {
-
     FIXED11_21 div, PI;
-    PI.full = FP_PI;
+    PI.full = FP_PI21_16;
     div.full = PI.full / 2;
-    
-    return fp_sin(fp_add(a,div), precision);
+
+    return fp_sin(fp_add(a, div), precision);
 }
 
 const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_division, fp_add, fp_subtract, fp_pow, fp_sin, fp_cos, factorial, fixed_to_float, float_to_fixed};
