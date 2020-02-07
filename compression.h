@@ -5,6 +5,7 @@
 #include "math.h"
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
 #ifdef HUFFMAN_CODEBOOK
@@ -32,7 +33,7 @@ struct compression_driver {
   /**
    * \brief Huffman encodes based on the codebook defined in HUFFMAN_CODEBOOK
    */
-  void (* huffman_encode)(uint8_t *block, uint16_t length, struct huffman_data *h_data);
+  int8_t (* huffman_encode)(uint8_t *block, uint16_t length, struct huffman_data *h_data);
 
 };
 
