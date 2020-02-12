@@ -2,11 +2,10 @@
 #define COMPRESSION_H_
 
 #include "contiki.h"
-#include "math.h"
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
+// #include "math.h"
+// #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef HUFFMAN_CODEBOOK
 #define CODEBOOK           HUFFMAN_CODEBOOK
@@ -17,10 +16,12 @@
 #define COMPRESS compression_driver
 
 #define HUFFMAN_RESOLUTION 4 // Amount of bits to represent symbols
+#define HUFFMAN_BLOCK_MAX_SIZE 170
 
 struct huffman_data {
   uint16_t length;
   uint8_t *bits;
+  uint8_t success;
 };
 
 struct compression_driver {
@@ -29,11 +30,11 @@ struct compression_driver {
    * \brief Transforms data into via the DCT-II transform.
    * https://en.wikipedia.org/wiki/Discrete_cosine_transform#DCT-II
    */
-  void (* dct_transform)(float* input_vector,float* res, unsigned int block_size);
+  // void (* dct_transform)(float* input_vector,float* res, unsigned int block_size);
   /**
    * \brief Huffman encodes based on the codebook defined in HUFFMAN_CODEBOOK
    */
-  int8_t (* huffman_encode)(uint8_t *block, uint16_t length, struct huffman_data *h_data);
+  struct huffman_data (* huffman_encode)(uint8_t *block, uint16_t length);
 
 };
 

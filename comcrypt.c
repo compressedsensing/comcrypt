@@ -81,19 +81,18 @@ PROCESS_THREAD(comcrypt_process, ev, data)
 
   // printf("\n");
   struct huffman_data h;
-  int8_t success;
   uint8_t remainder = 0;
 
-  success = COMPRESS.huffman_encode(plainText, PLAIN_TEXT_SIZE, &h);
+  h = COMPRESS.huffman_encode(plainText, PLAIN_TEXT_SIZE);
 
-  printf("success: %d", success);
+  printf("success: %d", h.success);
 
   printf("\n");
 
   if (h.length % 8) {
     remainder = 1;
   }
-  print_text(h.bits, (h.length >> 3));
+  print_text(h.bits, ((h.length >> 3) + remainder));
   printf("%d\n", h.length);
   printf("\n");
   printf("%d\n", h.length >> 3);

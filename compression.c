@@ -9,17 +9,34 @@ const uint16_t huffman_codebook[1 << HUFFMAN_RESOLUTION] = {
 
 const uint16_t huffman_eof = 0xA99;
 
-static void dct_transform(float *input_vector, float *result, unsigned int block_size)
-{
-    float factor = M_PI / block_size;
-    size_t i, j; //Predefine loop reference
+// static void dct_transform(float *input_vector, float *result, unsigned int block_size)
+// {
+//     float factor = M_PI / block_size;
+//     size_t i, j; //Predefine loop reference
 
-    for (i = 0; i < block_size; i++)
-    {
-        float sum = 0;
-        for (j = 0; j < block_size; j++)
-            sum += input_vector[j] * cos((j + 0.5) * i * factor);
-        result[i] = sum;
+//     for (i = 0; i < block_size; i++)
+//     {
+//         float sum = 0;
+//         for (j = 0; j < block_size; j++)
+//             sum += input_vector[j] * cos((j + 0.5) * i * factor);
+//         result[i] = sum;
+//     }
+// }
+
+uint8_t* calloc_byte(uint16_t nmem) {
+    uint16_t i;
+    uint8_t* mem = (uint8_t*)malloc(nmem);
+    for (i = 0; i < nmem; i++) {
+        mem[i] = 0x0;
+    }
+
+    return mem;
+}
+
+void mem_copy(uint8_t* dest, uint8_t* src, uint16_t length) {
+    uint16_t i;
+    for (i = 0; i < length; i++) {
+        dest[i] = src[i];
     }
 }
 
@@ -49,48 +66,47 @@ int pushBits(uint16_t huff_code, uint8_t *bitstring, uint16_t bitstring_length) 
     return bitstr_len + 1;
 }
 
-static int8_t huffman_encode(uint8_t *block, uint16_t length, struct huffman_data *h_data) {
+static struct huffman_data huffman_encode(uint8_t *block, uint16_t length) {
+    struct huffman_data h_data;
     uint16_t i;
     uint8_t firstHalf;
     uint8_t secondHalf;
-    uint8_t *bitstring;
-    uint16_t last_bit_position = 0;
+    uint8_t bitstring[HUFFMAN_BLOCK_MAX_SIZE * 2] = {0};
+    uint16_t bitstr_len = 0;
     uint16_t huff_code;
-    uint8_t *buf;
     uint8_t remainder = 0;
-    bitstring = calloc(length * 2, sizeof(uint8_t)); // Potentially N = 512 Bytes
+    // bitstring = calloc_byte(length * 2); // Potentially N = 512 Bytes
     for (i = 0; i < length; i++) {
         // Push first half to final huff code
         firstHalf = (block[i] & 0xF0) >> 4;
         huff_code = CODEBOOK[firstHalf];
-        last_bit_position = pushBits(huff_code, bitstring, last_bit_position);
+        bitstr_len = pushBits(huff_code, bitstring, bitstr_len);
 
         // Repeat for second half
         secondHalf = block[i] & 0x0F;
         huff_code = CODEBOOK[secondHalf];
-        last_bit_position = pushBits(huff_code, bitstring, last_bit_position);
+        bitstr_len = pushBits(huff_code, bitstring, bitstr_len);
     }
-
     // When done push eof
-    last_bit_position = pushBits(huffman_eof, bitstring, last_bit_position);
+    bitstr_len = pushBits(huffman_eof, bitstring, bitstr_len);
 
-    if (last_bit_position % 8) {
+    if (bitstr_len % 8) {
         remainder = 1;
     }
-    buf = calloc((last_bit_position >> 3) + remainder, sizeof(uint8_t));
-    memcpy(buf, bitstring, (last_bit_position >> 3) + remainder);
-    free(bitstring);
-    h_data->length = last_bit_position;
-    h_data->bits = buf;
 
-    if ((h_data->length >> 3) > length) {
-        return -1;
+    h_data.bits = calloc_byte((bitstr_len >> 3) + remainder);
+    mem_copy(h_data.bits, bitstring, (bitstr_len >> 3) + remainder);
+    h_data.length = bitstr_len;
+
+    if ((h_data.length >> 3) > length) {
+        h_data.success = -1;
     } else {
-        return 1;
+        h_data.success = 1;
     }
+    return h_data;
 } 
 
 const struct compression_driver compression_driver = {
-    dct_transform,
+    // dct_transform,
     huffman_encode
 };
