@@ -1,13 +1,13 @@
 #include "./compression.h"
 
-const uint16_t huffman_codebook[1 << HUFFMAN_RESOLUTION] = {
+const uint16_t default_huffman_codebook[1 << HUFFMAN_RESOLUTION] = {
   0x0A98, 0x0152, 0x015E, 0x00A8, 
   0x0055, 0x0028, 0x000B, 0x0000, 
   0x0003, 0x0004, 0x0029, 0x0056, 
   0x00AE, 0x015F, 0x02A7, 0x054D, 
 };
 
-const uint16_t huffman_eof = 0xA99;
+const uint16_t default_huffman_eof = 0xA99;
 
 // static void dct_transform(float *input_vector, float *result, unsigned int block_size)
 // {
@@ -66,7 +66,7 @@ int pushBits(uint16_t huff_code, uint8_t *bitstring, uint16_t bitstring_length) 
     return bitstr_len + 1;
 }
 
-static struct huffman_data huffman_encode(uint8_t *block, uint16_t length) {
+static struct huffman_data huffman_encode(uint8_t *block, uint16_t length, const uint16_t *codebook, const uint16_t h_eof) {
     struct huffman_data h_data;
     uint16_t i;
     uint8_t firstHalf;
@@ -79,16 +79,16 @@ static struct huffman_data huffman_encode(uint8_t *block, uint16_t length) {
     for (i = 0; i < length; i++) {
         // Push first half to final huff code
         firstHalf = (block[i] & 0xF0) >> 4;
-        huff_code = CODEBOOK[firstHalf];
+        huff_code = codebook[firstHalf];
         bitstr_len = pushBits(huff_code, bitstring, bitstr_len);
 
         // Repeat for second half
         secondHalf = block[i] & 0x0F;
-        huff_code = CODEBOOK[secondHalf];
+        huff_code = codebook[secondHalf];
         bitstr_len = pushBits(huff_code, bitstring, bitstr_len);
     }
     // When done push eof
-    bitstr_len = pushBits(huffman_eof, bitstring, bitstr_len);
+    bitstr_len = pushBits(h_eof, bitstring, bitstr_len);
 
     if (bitstr_len % 8) {
         remainder = 1;

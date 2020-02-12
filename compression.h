@@ -4,14 +4,10 @@
 #include "contiki.h"
 // #include "math.h"
 // #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 
-#ifdef HUFFMAN_CODEBOOK
-#define CODEBOOK           HUFFMAN_CODEBOOK
-#else /* HUFFMAN_CODEBOOK */
-#define CODEBOOK            huffman_codebook
-#endif /* HUFFMAN_CODEBOOK */
+#define DEFAULT_HUFFMAN_CODEBOOK default_huffman_codebook
+#define DEFAULT_HUFFMAN_EOF default_huffman_eof
 
 #define COMPRESS compression_driver
 
@@ -34,14 +30,16 @@ struct compression_driver {
   /**
    * \brief Huffman encodes based on the codebook defined in HUFFMAN_CODEBOOK
    */
-  struct huffman_data (* huffman_encode)(uint8_t *block, uint16_t length);
+  struct huffman_data (* huffman_encode)(uint8_t *block, uint16_t length, const uint16_t *codebook, const uint16_t h_eof);
 
 };
 
 // Huffman variables
 
 // 4 bit resolution
-const uint16_t huffman_codebook[1 << HUFFMAN_RESOLUTION];
+const uint16_t default_huffman_codebook[1 << HUFFMAN_RESOLUTION];
+
+const uint16_t default_huffman_eof;
 
 
 extern const struct compression_driver COMPRESS;

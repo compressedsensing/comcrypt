@@ -1,9 +1,18 @@
 #include "contiki.h"
-// #include <stdio.h>
+#include <stdio.h>
 #include "./encrypt.h"
 #include "./compression.h"
 
 #define PLAIN_TEXT_SIZE AES_128_BLOCK_SIZE * 3
+
+const uint16_t huffman_codebook[1 << HUFFMAN_RESOLUTION] = {
+  0x0A98, 0x0152, 0x015E, 0x00A8, 
+  0x0055, 0x0028, 0x000B, 0x0000, 
+  0x0003, 0x0004, 0x0029, 0x0056, 
+  0x00AE, 0x015F, 0x02A7, 0x054D, 
+};
+
+const uint16_t huffman_eof = 0xA99;
 
 void print_text(uint8_t *text, uint8_t length)
 {
@@ -83,7 +92,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   struct huffman_data h;
   uint8_t remainder = 0;
 
-  h = COMPRESS.huffman_encode(plainText, PLAIN_TEXT_SIZE);
+  h = COMPRESS.huffman_encode(plainText, PLAIN_TEXT_SIZE, huffman_codebook, huffman_eof);
 
   printf("success: %d", h.success);
 
