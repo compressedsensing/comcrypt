@@ -68,7 +68,7 @@ static FIXED11_21 fp_multiply(FIXED11_21 a, FIXED11_21 b)
     tmp = (long)a.full * (long)b.full;
 
     // Take out midder section of bits
-    tmp = tmp + (1 << FPART - 1);
+    tmp = tmp + (1 << (FPART - 1));
     tmp = tmp >> FPART;
 
     // // Saturate the result if over or under minimum value.
