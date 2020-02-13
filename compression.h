@@ -18,9 +18,27 @@
 
 struct huffman_data {
   uint16_t length;
+  uint16_t byte_length;
   uint8_t *bits;
-  uint8_t success;
+  int8_t success;
 };
+
+struct huffman_codeword {
+  uint16_t word;
+  uint8_t word_length;
+};
+
+typedef struct {
+  uint16_t word;
+  uint8_t word_length;
+} huffman_codeword;
+
+typedef struct {
+  uint16_t length;
+  uint16_t byte_length;
+  uint8_t *bits;
+  int8_t success;
+} huffman_data;
 
 struct compression_driver {
   
@@ -35,21 +53,21 @@ struct compression_driver {
    */
   void (*threshold)(FIXED11_21 *dct_vector, FIXED11_21 threshold, unsigned int length);
 
-  FIXED11_21* (*simple_truncate)(FIXED11_21 *dct_vector,FIXED11_21 *result, unsigned int length);
+  void (*simple_truncate)(FIXED11_21 *dct_vector,FIXED11_21 *result, uint16_t length, uint16_t result_length);
   // void (* dct_transform)(float* input_vector,float* res, unsigned int block_size);
   /**
    * \brief Huffman encodes based on the codebook defined in HUFFMAN_CODEBOOK
    */
-  struct huffman_data (* huffman_encode)(uint8_t *block, uint16_t length, const uint16_t *codebook, const uint16_t h_eof);
+  huffman_data (* huffman_encode)(uint8_t *block, uint16_t length, const huffman_codeword *codebook, const huffman_codeword h_eof);
 
 };
 
 // Huffman variables
 
 // 4 bit resolution
-const uint16_t default_huffman_codebook[1 << HUFFMAN_RESOLUTION];
+const huffman_codeword default_huffman_codebook[1 << HUFFMAN_RESOLUTION];
 
-const uint16_t default_huffman_eof;
+const huffman_codeword default_huffman_eof;
 
 
 

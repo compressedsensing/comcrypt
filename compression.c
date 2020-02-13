@@ -11,7 +11,6 @@ static void dct_transform(FIXED11_21 *input_vector, FIXED11_21 *result, unsigned
     FIXED11_21 fac, half, iter, iter2, sum;
     fac.full = FP_PI21_16 / block_size;
 
-    FIXED11_21;
     half.full = 0b00000000000000000000010000000000;
 
     //Set iterators fractions to 0
@@ -45,13 +44,11 @@ static void threshold(FIXED11_21 *dct_vector, FIXED11_21 threshold, unsigned int
         {
             if (-dct_vector[i].full < threshold.full)
             {
-                printf("hehre\n");
                 dct_vector[i].full = 0;
             }
         }
         else
         {
-            printf("COOL\n");
             if (dct_vector[i].full < threshold.full)
             {
                 dct_vector[i].full = 0;
@@ -60,44 +57,23 @@ static void threshold(FIXED11_21 *dct_vector, FIXED11_21 threshold, unsigned int
     }
 }
 
-FIXED11_21 *simple_truncate(FIXED11_21 *dct_vector, FIXED11_21 *result, unsigned int length)
+static void simple_truncate(FIXED11_21 *dct_vector, FIXED11_21 *result, uint16_t length, uint16_t result_length)
 {
-    int len = 10;
-
-    if (length < len)
+    uint16_t i;
+    for (i = 0; i < result_length; i++)
     {
-        return;
+        result[i].full = dct_vector[i].full;
     }
-    FIXED11_21 res[len];
-
-    int i;
-    for (i = 0; i < len; i++)
-    {
-        res[i].full = dct_vector[i].full;
-    }
-
-    return res;
 }
-const uint16_t default_huffman_codebook[1 << HUFFMAN_RESOLUTION] = {
-    0x0A98,
-    0x0152,
-    0x015E,
-    0x00A8,
-    0x0055,
-    0x0028,
-    0x000B,
-    0x0000,
-    0x0003,
-    0x0004,
-    0x0029,
-    0x0056,
-    0x00AE,
-    0x015F,
-    0x02A7,
-    0x054D,
+
+const huffman_codeword default_huffman_codebook[1 << HUFFMAN_RESOLUTION] = {
+    {0b1, 1}, {0b0000, 4}, {0b00100, 5}, {0b001111, 6},
+    {0b001010, 6}, {0b0010111, 7}, {0b0001100, 7}, {0b000110101, 9},
+    {0b0001101001, 10}, {0b00011011, 8}, {0b0010110, 7}, {0b000111, 6},
+    {0b001110, 6}, {0b00010, 5}, {0b00110, 5}, {0b01, 2}
 };
 
-const uint16_t default_huffman_eof = 0xA99;
+const huffman_codeword default_huffman_eof = {0b0001101000, 10};
 
 uint8_t *calloc_byte(uint16_t nmem)
 {
@@ -120,47 +96,35 @@ void mem_copy(uint8_t *dest, uint8_t *src, uint16_t length)
     }
 }
 
-int pushBits(uint16_t huff_code, uint8_t *bitstring, uint16_t bitstring_length)
+int pushBits(huffman_codeword huff_code, uint8_t *bitstring, uint16_t bitstring_length)
 {
     uint16_t max_code_word_size = sizeof(uint16_t) * 8;
     uint16_t sig_bit = 1 << (max_code_word_size - 1);
-    uint8_t i, j;
+    uint8_t i;
     uint8_t last_byte_bit = bitstring_length % 8;
     uint16_t bitstr_len = bitstring_length;
-    uint16_t start;
+    uint16_t start = max_code_word_size - huff_code.word_length;
     uint8_t bit;
-    for (i = 0; i < max_code_word_size; i++)
-    {
-        start = (sig_bit >> i) & huff_code;
-        if (start)
-        {
-            // we have arrived at the index of the starting bit
-            // Append it to bitstring at bitstring_length
-            for (j = 0; j < max_code_word_size - i; i++)
-            {
-                bit = (((huff_code << (i + j)) & sig_bit) >> last_byte_bit) >> 8;
-                bitstring[bitstr_len >> 3] |= bit;
-                bitstr_len++;
-                last_byte_bit = bitstr_len % 8;
-            }
-            return bitstr_len;
-        }
+    for (i = 0; i < huff_code.word_length; i++) {
+        bit = (((huff_code.word << (start + i)) & sig_bit) >> last_byte_bit) >> 8;
+        bitstring[bitstr_len >> 3] |= bit;
+        bitstr_len++;
+        last_byte_bit = bitstr_len % 8;
     }
-    // If none return 1 - there should be a single zero which there already is
-    return bitstr_len + 1;
+    return bitstr_len;
 }
 
-static struct huffman_data huffman_encode(uint8_t *block, uint16_t length, const uint16_t *codebook, const uint16_t h_eof)
+static huffman_data huffman_encode(uint8_t *block, uint16_t length, const huffman_codeword *codebook, const huffman_codeword h_eof)
 {
-    struct huffman_data h_data;
+    huffman_data h_data;
     uint16_t i;
     uint8_t firstHalf;
     uint8_t secondHalf;
     uint8_t bitstring[HUFFMAN_BLOCK_MAX_SIZE * 2] = {0};
     uint16_t bitstr_len = 0;
-    uint16_t huff_code;
+    huffman_codeword huff_code;
     uint8_t remainder = 0;
-    // bitstring = calloc_byte(length * 2); // Potentially N = 512 Bytes
+    uint16_t byte_length;
     for (i = 0; i < length; i++)
     {
         // Push first half to final huff code
@@ -180,12 +144,13 @@ static struct huffman_data huffman_encode(uint8_t *block, uint16_t length, const
     {
         remainder = 1;
     }
-
-    h_data.bits = calloc_byte((bitstr_len >> 3) + remainder);
-    mem_copy(h_data.bits, bitstring, (bitstr_len >> 3) + remainder);
+    byte_length = (bitstr_len >> 3) + remainder;
+    h_data.byte_length = byte_length;
+    h_data.bits = calloc_byte(byte_length);
+    mem_copy(h_data.bits, bitstring, byte_length);
     h_data.length = bitstr_len;
 
-    if ((h_data.length >> 3) > length)
+    if (byte_length > length)
     {
         h_data.success = -1;
     }
@@ -195,4 +160,9 @@ static struct huffman_data huffman_encode(uint8_t *block, uint16_t length, const
     }
     return h_data;
 }
-const struct compression_driver compression_driver = {dct_transform, threshold, simple_truncate, huffman_encode};
+const struct compression_driver compression_driver = {
+    dct_transform, 
+    threshold, 
+    simple_truncate, 
+    huffman_encode
+};
