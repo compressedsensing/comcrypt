@@ -27,10 +27,10 @@ struct fixed_point_driver
     FIXED11_21(* fp_division)(FIXED11_21 a, FIXED11_21 b);
     FIXED11_21(* fp_add)(FIXED11_21 a, FIXED11_21 b);
     FIXED11_21(* fp_subtract)(FIXED11_21 a, FIXED11_21 b);
-    FIXED11_21(* fp_pow)(FIXED11_21 a, int b);
-    FIXED11_21(* fp_sin)(FIXED11_21 a, int precision);
-    FIXED11_21(* fp_cos)(FIXED11_21 a, int precision);
-    int32_t(* factorial)(int a);
+    FIXED11_21(* fp_pow)(FIXED11_21 a, uint32_t b);
+    FIXED11_21(* fp_sin)(FIXED11_21 a, uint32_t precision);
+    FIXED11_21(* fp_cos)(FIXED11_21 a, uint32_t precision);
+    uint32_t(* factorial)(uint32_t a);
     /* Helpers */
     double (* fixed_to_float)(FIXED11_21 input);
     FIXED11_21 (* float_to_fixed)(double input);

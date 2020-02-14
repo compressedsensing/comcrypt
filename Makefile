@@ -1,9 +1,12 @@
 TARGET_LIBFILES += -lm
 
+# CONTIKI_NO_NET=1
+
 CONTIKI_PROJECT = comcrypt
 all: $(CONTIKI_PROJECT)
 
 CONTIKI = ../..
+CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
 PROJECT_SOURCEFILES += encrypt.c compression.c fixedpoint.c
 
