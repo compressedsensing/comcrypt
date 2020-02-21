@@ -1,25 +1,21 @@
-#ifndef AES_CBC_H_
-#define AES_CBC_H_
+#ifndef ENCRYPTION_H_
+#define ENCRYPTION_H_
 
 #include "contiki.h"
 
 #define ENCRYPT encryption_driver
 
 #include "lib/aes-128.h"
+#include "string.h"
 
 
 struct encryption_driver {
-  
-  /**
-   * \brief Encrypts using CBC mode. IMPORTANT: plaintext_and_result should be divisable with AES_128_BLOCK_SIZE
-   */
-  void (* aes_encrypt_cbc)(uint8_t *plaintext_and_result, uint8_t *iv, uint32_t length, uint8_t *key);
   /**
    * \brief Encrypts using CTR mode. IMPORTANT: plaintext_and_result should be divisable with AES_128_BLOCK_SIZE
    */
-  void (* aes_encrypt_ctr)(uint8_t *plaintext_and_result, uint8_t *iv, uint32_t length, uint8_t *key);
+  void (* aes_encrypt_ctr)(uint8_t *plaintext_and_result, uint8_t *iv, const uint32_t length, const uint8_t *key);
 };
 
 extern const struct encryption_driver ENCRYPT;
 
-#endif /* AES_CBC_H_ */
+#endif /* ENCRYPTION_H_ */

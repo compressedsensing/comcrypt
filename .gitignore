@@ -1,9 +1,11 @@
 /obj_xm1000
 /obj_native
+/build
 contiki-xm1000.a
 contiki-xm1000.map
-comcrypt.xm1000
 contiki-native.a
 contiki-native.map
-comcrypt.native
+*.xm1000
+*.native
+*.sky
 symbols.*

@@ -168,19 +168,19 @@ static uint32_t factorial(uint32_t a)
  * @param b denominator
  * @return a/b
  */
-static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
-{
+// static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
+// {
 
-    int64_t tmp = 0;
-    FIXED11_21 result;
+//     int64_t tmp = 0;
+//     FIXED11_21 result;
 
-    tmp = (int64_t)a.full << FPART;
-    tmp = tmp + (b.full >> 1);
-    tmp = tmp / b.full;
+//     tmp = (int64_t)a.full << FPART;
+//     tmp = tmp + (b.full >> 1);
+//     tmp = tmp / b.full;
 
-    result.full = (uint32_t)tmp;
-    return result;
-}
+//     result.full = (uint32_t)tmp;
+//     return result;
+// }
 
 /**
  * @brief Taylor approximation of sin function
@@ -238,7 +238,7 @@ static FIXED11_21 fp_cos(FIXED11_21 a, uint32_t precision)
 
 const struct fixed_point_driver fixed_point_driver = {
     fp_multiply, 
-    fp_division, 
+    // fp_division, 
     fp_add, 
     fp_subtract, 
     fp_pow, 

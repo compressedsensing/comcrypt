@@ -24,7 +24,7 @@ typedef union FIXED11_21tag {
 struct fixed_point_driver
 {
     FIXED11_21(* fp_multiply)(FIXED11_21 a, FIXED11_21 b);
-    FIXED11_21(* fp_division)(FIXED11_21 a, FIXED11_21 b);
+    // FIXED11_21(* fp_division)(FIXED11_21 a, FIXED11_21 b);
     FIXED11_21(* fp_add)(FIXED11_21 a, FIXED11_21 b);
     FIXED11_21(* fp_subtract)(FIXED11_21 a, FIXED11_21 b);
     FIXED11_21(* fp_pow)(FIXED11_21 a, uint32_t b);

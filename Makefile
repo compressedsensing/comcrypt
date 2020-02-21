@@ -1,7 +1,5 @@
 TARGET_LIBFILES += -lm
 
-# CONTIKI_NO_NET=1
-
 CONTIKI_PROJECT = comcrypt
 all: $(CONTIKI_PROJECT)
 
