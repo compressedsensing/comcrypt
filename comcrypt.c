@@ -105,7 +105,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   LOG_INFO_("Initial data:\n");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
-    LOG_INFO_("%08x", (unsigned int)signal[i]);
+    LOG_INFO_("%04x", signal[i]);
   }
   LOG_INFO_("\n");
 
@@ -114,7 +114,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   LOG_INFO_("Transformed data:\n");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
-    LOG_INFO_("%08x", (unsigned int)signal[i]);
+    LOG_INFO_("%04x", signal[i]);
   }
   LOG_INFO_("\n");
 
@@ -123,17 +123,15 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   LOG_INFO_("Thresholded data:\n");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
-    LOG_INFO_("%08x", (unsigned int)signal[i]);
+    LOG_INFO_("%04x", signal[i]);
   }
   LOG_INFO_("\n");
 
   // Fixed point to bytes
-  for (i = 0; i < BLOCK_LEN; i += 4)
+  for (i = 0; i < BLOCK_LEN; i += 2)
   {
-    signal_bytes[i + 0] = (uint8_t)((signal[i >> 2] & 0xFF000000) >> 24);
-    signal_bytes[i + 1] = (uint8_t)((signal[i >> 2] & 0x00FF0000) >> 16);
-    signal_bytes[i + 2] = (uint8_t)((signal[i >> 2] & 0x0000FF00) >> 8);
-    signal_bytes[i + 3] = (uint8_t)((signal[i >> 2] & 0x000000FF) >> 0);
+    signal_bytes[i + 0] = (uint8_t)((signal[i >> 2] & 0xFF00) >> 8);
+    signal_bytes[i + 1] = (uint8_t)((signal[i >> 2] & 0x00FF) >> 0);
   }
 
   LOG_INFO_("Byte data:\n");

@@ -2,7 +2,7 @@
 #define CONFIGURATION_H_
 
 #define SIGNAL_LEN 512
-#define BLOCK_LEN SIGNAL_LEN * 4
+#define BLOCK_LEN SIGNAL_LEN * 2
 
 #ifndef LOG_MODULE
 #define LOG_MODULE "Comcrypt"

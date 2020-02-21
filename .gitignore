@@ -9,3 +9,5 @@ contiki-native.map
 *.native
 *.sky
 symbols.*
+*.ihex
+*.o
