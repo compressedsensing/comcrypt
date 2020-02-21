@@ -2,53 +2,19 @@
 
 //Relentlessly stolen from: https://www.eetimes.com/fixed-point-math-in-c-2/#
 
-/**
- * Helper function that prints a 32-bit fractional bits 
- */
-// static void printBits32(int32_t num)
+// static double fixed_to_float16(int16_t input)
 // {
-//     for (int bit = 0; bit < (sizeof(int32_t) * 8); bit++)
-//     {
-//         printf("%i ", num & 0x01);
-//         num = num >> 1;
-//     }
-// }1
-
-// /**
-//  * Helper function that prints a 64-bit fractional bits 
-//  */
-// static void printBits64(int64_t num)
-// {
-//     for (int bit = 0; bit < (sizeof(int64_t) * 8); bit++)
-//     {
-//         printf("%li ", num & 0x01);
-//         num = num >> 1;
-//     }
+//     double res = 0;
+//     res = ((double)input / (double)(1 << FPART));
+//     return res;
 // }
 
-/**
- * @brief Converts a fixed point representation number to a double
- * @param input The fixed point value
- * @return float(double) representation of input value
- */
-static double fixed_to_float(FIXED11_21 input)
-{
-    double res = 0;
-    res = ((double)input.full / (double)(1 << FPART));
-    return res;
-}
-
-/**
- * @brief Coverts a float(double) to a fixed_point double 
- * @param input The input float
- * @return  fixed point reprensentation of a float
- */
-static FIXED11_21 float_to_fixed(double input)
-{
-    FIXED11_21 res;
-    res.full = (int32_t)(input * (1 << FPART));
-    return res;
-}
+// static int16_t float_to_fixed16(double input)
+// {
+//     int16_t res;
+//     res = (int16_t)(input * (1 << FPART));
+//     return res;
+// }
 
 /**
  * @brief Multiplies two fixed point represented numbers with each other
@@ -56,16 +22,16 @@ static FIXED11_21 float_to_fixed(double input)
  * @param b fixed number to be multiplied
  * @return result of the multiplication
  */
-static FIXED11_21 fp_multiply(FIXED11_21 a, FIXED11_21 b)
+static int16_t fp_multiply(int16_t a, int16_t b)
 {
-    int64_t tmp;
-    int64_t IL;
+    int32_t tmp;
+    int32_t IL;
 
     // long tmp, Z;
-    FIXED11_21 result;
+    int16_t result;
 
     // Save result in double size
-    tmp = (int64_t)a.full * (int64_t)b.full;
+    tmp = (int32_t)a * (int32_t)b;
 
     // Take out midder section of bits
     tmp = tmp + (1 << (FPART - 1));
@@ -77,174 +43,115 @@ static FIXED11_21 fp_multiply(FIXED11_21 a, FIXED11_21 b)
     // else if (tmp < INT32_MIN)
     //     Z = INT32_MIN;
     // else
-    
+
     IL = tmp;
 
-    result.full = IL;
+    result = IL;
 
     return result;
 }
 
-/**
- * @brief Adds two fixed point represented numbers with each other
- * @param a fixed number to be added
- * @param b fixed number to be added
- * @return result of the addition
- */
-static FIXED11_21 fp_add(FIXED11_21 a, FIXED11_21 b)
+static int16_t fp_cos(int16_t i)
 {
-    FIXED11_21 result;
+    i += 0x0192;
 
-    result.full = a.full + b.full; /* Has a risk of overflowing */
+    i = fp_multiply(0x145f, i);
+    /* Convert (signed) input to a value between 0 and 8192. (8192 is pi/2, which is the region of the curve fit). */
+    /* ------------------------------------------------------------------- */
+    i <<= 1;
+    uint8_t c = i < 0; //set carry for output pos/neg
 
-    return result;
-}
+    // printf("C: %d\n",c);
 
-/**
- * @brief Subtracts two fixed point represented numbers with each other
- * @param a fixed number to be subtract from
- * @param b fixed number to be subtracted
- * @return result of the subtracted
- */
-static FIXED11_21 fp_subtract(FIXED11_21 a, FIXED11_21 b)
-{
-    FIXED11_21 result;
+    if (i == (i | 0x4000)) // flip input value to corresponding value in range [0..8192)
+        i = (1 << 15) - i;
+    i = (i & 0x7FFF) >> 1;
+    /* ------------------------------------------------------------------- */
 
-    result.full = a.full - b.full; /* Has a risk of overflowing */
-
-    return result;
-}
-
-/**
- * @brief Provides the b'th power of number a
- * @param a Number to get power from
- * @param b The power qoutient
- * @return result of the power
- */
-static FIXED11_21 fp_pow(FIXED11_21 a, uint32_t b)
-{
-    uint32_t i;
-    FIXED11_21 result = a;
-
-    if (b == 0)
+    /* The following section implements the formula:
+     = y * 2^-n * ( A1 - 2^(q-p)* y * 2^-n * y * 2^-n * [B1 - 2^-r * y * 2^-n * C1 * y]) * 2^(a-q)
+    Where the constants are defined as follows:
+    */
+    enum
     {
-        result.part.integer = 1;
-        result.part.fraction = 0;
-        return result;
-    }
-
-    for (i = 0; i < b - 1; i++)
+        A1 = 3370945099UL,
+        B1 = 2746362156UL,
+        C1 = 292421UL
+    };
+    enum
     {
-        // printf("Prev: %f\n", fixed_to_float(result));
-        // printf("Initial %f\n", fixed_to_float(a));
-        result = fp_multiply(result, a);
-        // printf("Result%f\n\n", fixed_to_float(result));
-    }
+        n = 13,
+        p = 32,
+        q = 31,
+        r = 3,
+        a = FPART
+    };
 
-    // printf("Final Result%f\n\n", fixed_to_float(result));
-    return result;
+    uint32_t y = (C1 * ((uint32_t)i)) >> n;
+    y = B1 - (((uint32_t)i * y) >> r);
+    y = (uint32_t)i * (y >> n);
+    y = (uint32_t)i * (y >> n);
+    y = A1 - (y >> (p - q));
+    y = (uint32_t)i * (y >> n);
+    y = (y + (1UL << (q - a - 1))) >> (q - a); // Rounding
+
+    // return y;
+    return c ? -y : y;
 }
 
-/**
- * @brief Provides n factorial
- * @param a Factorial start number
- * @return Factorial of a
- */
-static uint32_t factorial(uint32_t a)
-{
-    uint32_t result = 1;
-    int i;
-
-    for (i = 1; i < a; i++)
-    {
-        result += result * i;
-    }
-    return result;
-}
-
-/**
- * @brief Division of FP numbers
- * @param a numinator
- * @param b denominator
- * @return a/b
- */
-// static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
+// /**
+//  * @brief Taylor approximation of sin function
+//  * @param a number inside sin(a)
+//  * @param b Order of taylor polynomiel
+//  * @return sin(a)
+//  */
+// static FIXED11_21 fp_sin(FIXED11_21 a, int precision)
 // {
+//     FIXED11_21 result, minus, div1;
+//     int32_t div, sign;
+//     result.full = 0; /* Initialize result value*/
 
-//     int64_t tmp = 0;
-//     FIXED11_21 result;
+//     //Set minus to -1
+//     minus.part.fraction = 0;
+//     minus.part.integer = -1;
 
-//     tmp = (int64_t)a.full << FPART;
-//     tmp = tmp + (b.full >> 1);
-//     tmp = tmp / b.full;
+//     sign = 1; /* Set sign used for values in pi:2pi */
 
-//     result.full = (uint32_t)tmp;
+//     // Fix input between 0:2*pi
+//     a.full = a.full % (2 * FP_PI21_16);
+
+//     if (a.full > FP_PI21_16)
+//     {
+//         a.full -= FP_PI21_16;
+//         sign = -1;
+//     }
+
+//     //Taylor expansion
+//     int n;
+//     for (n = 0; n < precision; n++)
+//     {
+//         div = factorial((2 * n) + 1);
+//         div1.full = fp_multiply(fp_pow(minus, n), fp_pow(a, (2 * n) + 1)).full / div;
+//         result = fp_add(result, div1);
+//     }
+
+//     result.full = result.full * sign;
 //     return result;
 // }
 
-/**
- * @brief Taylor approximation of sin function
- * @param a number inside sin(a)
- * @param b Order of taylor polynomiel
- * @return sin(a)
- */
-static FIXED11_21 fp_sin(FIXED11_21 a, uint32_t precision)
-{
-    FIXED11_21 result, minus, div1;
-    int32_t div, sign;
-    result.full = 0; /* Initialize result value*/
-    //Set minus to -1
-    minus.part.fraction = 0;
-    minus.part.integer = -1;
+// /**
+//  * @brief Taylor approximation of cos function
+//  * @param a number inside cos(a)
+//  * @param b Order of taylor polynomiel
+//  * @return cos(a)
+//  */
+// static FIXED11_21 fp_cos(FIXED11_21 a, int precision)
+// {
+//     FIXED11_21 div, PI;
+//     PI.full = FP_PI21_16;
+//     div.full = PI.full / 2;
 
-    sign = 1; /* Set sign used for values in pi:2pi */
+//     return fp_sin(fp_add(a, div), precision);
+// }
 
-    // Fix input between 0:2*pi
-    a.full = a.full % (2 * FP_PI21_16);
-
-    if (a.full > FP_PI21_16)
-    {
-        a.full -= FP_PI21_16;
-        sign = -1;
-    }
-
-    //Taylor expansion
-    uint32_t n;
-    for (n = 0; n < precision; n++)
-    {
-        div = factorial((2 * n) + 1);
-        div1.full = fp_multiply(fp_pow(minus, n), fp_pow(a, (2 * n) + 1)).full / div;
-        result = fp_add(result, div1);
-    }
-
-    result.full = result.full * sign;
-    return result;
-}
-
-/**
- * @brief Taylor approximation of cos function
- * @param a number inside cos(a)
- * @param b Order of taylor polynomiel
- * @return cos(a)
- */
-static FIXED11_21 fp_cos(FIXED11_21 a, uint32_t precision)
-{
-    FIXED11_21 div, PI;
-    PI.full = FP_PI21_16;
-    div.full = PI.full / 2;
-
-    return fp_sin(fp_add(a, div), precision);
-}
-
-const struct fixed_point_driver fixed_point_driver = {
-    fp_multiply, 
-    // fp_division, 
-    fp_add, 
-    fp_subtract, 
-    fp_pow, 
-    fp_sin, 
-    fp_cos, 
-    factorial, 
-    fixed_to_float, 
-    float_to_fixed
-};
+const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_cos};

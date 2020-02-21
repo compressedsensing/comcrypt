@@ -6,29 +6,31 @@
  * @param result The result vector
  * @param block_size The size of the block to DCT transform
  */
-static void dct_transform(FIXED11_21 *input_vector_and_result, unsigned int block_size)
+static void dct_transform(int16_t *input_vector_and_result, unsigned int block_size)
 {
-    FIXED11_21 fac, half, iter, iter2, sum;
-    FIXED11_21 result[SIGNAL_LEN];
-    fac.full = FP_PI21_16 / block_size;
+    int16_t fac, half, iter, iter2, sum;
+    int16_t result[SIGNAL_LEN];
 
-    half.full = 0b00000000000000000000010000000000;
+    // Should be precomputed
+    fac = 0x0324 / block_size; /* PI / block_size*/
+    half = 0x0080; /* 0.5 */
 
     //Set iterators fractions to 0
-    iter.part.fraction = 0;
-    iter2.part.fraction = 0;
-
-    for (iter2.part.integer = 0; iter2.part.integer < block_size; iter2.part.integer++)
+    for (iter2 = 0; iter2 < block_size; iter2++)
     {
-        sum.full = 0;
-        for (iter.part.integer = 0; iter.part.integer < block_size; iter.part.integer++)
+        sum = 0;
+        for (iter= 0; iter < block_size; iter++)
         {
-            sum = FP.fp_add(sum, FP.fp_multiply(input_vector_and_result[iter.part.integer], FP.fp_cos(FP.fp_multiply(FP.fp_multiply(FP.fp_add(half, iter), iter2), fac), 5)));
+            sum += FP.fp_multiply(input_vector_and_result[iter],FP.fp_cos(FP.fp_multiply(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART)), fac)));
+            // printf("SUM : %.2f \t",FP.fixed_to_float16(sum));
         }
-        result[iter2.part.integer] = sum;
+
+        // printf("\n\n");
+        result[iter2] = sum;
     }
-    for (iter2.part.integer = 0; iter2.part.integer < block_size; iter2.part.integer++) {
-        input_vector_and_result[iter2.part.integer] = result[iter2.part.integer];
+    for (iter = 0; iter < SIGNAL_LEN; iter++)
+    {
+        input_vector_and_result[iter] = result[iter];
     }
 }
 
@@ -38,24 +40,24 @@ static void dct_transform(FIXED11_21 *input_vector_and_result, unsigned int bloc
  * @param threshold The given threshold
  * @param length The length of the DCT vector 
  */
-static void threshold(FIXED11_21 *dct_vector, FIXED11_21 threshold, unsigned int length)
+static void threshold(int16_t *dct_vector, int16_t threshold, unsigned int length)
 {
     int i;
 
     for (i = 0; i < length; i++)
     {
-        if (dct_vector[i].part.integer < 0)
+        if ((dct_vector[i] << FPART) < 0)
         {
-            if (-dct_vector[i].full < threshold.full)
+            if (-dct_vector[i] < threshold)
             {
-                dct_vector[i].full = 0;
+                dct_vector[i] = 0;
             }
         }
         else
         {
-            if (dct_vector[i].full < threshold.full)
+            if (dct_vector[i] < threshold)
             {
-                dct_vector[i].full = 0;
+                dct_vector[i] = 0;
             }
         }
     }
