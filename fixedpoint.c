@@ -58,14 +58,14 @@ static FIXED11_21 float_to_fixed(double input)
  */
 static FIXED11_21 fp_multiply(FIXED11_21 a, FIXED11_21 b)
 {
-    long tmp;
-    long IL;
+    int64_t tmp;
+    int64_t IL;
 
     // long tmp, Z;
     FIXED11_21 result;
 
     // Save result in double size
-    tmp = (long)a.full * (long)b.full;
+    tmp = (int64_t)a.full * (int64_t)b.full;
 
     // Take out midder section of bits
     tmp = tmp + (1 << (FPART - 1));
@@ -121,9 +121,9 @@ static FIXED11_21 fp_subtract(FIXED11_21 a, FIXED11_21 b)
  * @param b The power qoutient
  * @return result of the power
  */
-static FIXED11_21 fp_pow(FIXED11_21 a, int b)
+static FIXED11_21 fp_pow(FIXED11_21 a, uint32_t b)
 {
-    int i;
+    uint32_t i;
     FIXED11_21 result = a;
 
     if (b == 0)
@@ -150,9 +150,9 @@ static FIXED11_21 fp_pow(FIXED11_21 a, int b)
  * @param a Factorial start number
  * @return Factorial of a
  */
-static int32_t factorial(int a)
+static uint32_t factorial(uint32_t a)
 {
-    int32_t result = 1;
+    uint32_t result = 1;
     int i;
 
     for (i = 1; i < a; i++)
@@ -168,19 +168,19 @@ static int32_t factorial(int a)
  * @param b denominator
  * @return a/b
  */
-static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
-{
+// static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
+// {
 
-    int64_t tmp = 0;
-    FIXED11_21 result;
+//     int64_t tmp = 0;
+//     FIXED11_21 result;
 
-    tmp = (int64_t)a.full << FPART;
-    tmp = tmp + (b.full >> 1);
-    tmp = tmp / b.full;
+//     tmp = (int64_t)a.full << FPART;
+//     tmp = tmp + (b.full >> 1);
+//     tmp = tmp / b.full;
 
-    result.full = (uint32_t)tmp;
-    return result;
-}
+//     result.full = (uint32_t)tmp;
+//     return result;
+// }
 
 /**
  * @brief Taylor approximation of sin function
@@ -188,12 +188,11 @@ static FIXED11_21 fp_division(FIXED11_21 a, FIXED11_21 b)
  * @param b Order of taylor polynomiel
  * @return sin(a)
  */
-static FIXED11_21 fp_sin(FIXED11_21 a, int precision)
+static FIXED11_21 fp_sin(FIXED11_21 a, uint32_t precision)
 {
     FIXED11_21 result, minus, div1;
     int32_t div, sign;
     result.full = 0; /* Initialize result value*/
-
     //Set minus to -1
     minus.part.fraction = 0;
     minus.part.integer = -1;
@@ -210,7 +209,7 @@ static FIXED11_21 fp_sin(FIXED11_21 a, int precision)
     }
 
     //Taylor expansion
-    int n;
+    uint32_t n;
     for (n = 0; n < precision; n++)
     {
         div = factorial((2 * n) + 1);
@@ -228,7 +227,7 @@ static FIXED11_21 fp_sin(FIXED11_21 a, int precision)
  * @param b Order of taylor polynomiel
  * @return cos(a)
  */
-static FIXED11_21 fp_cos(FIXED11_21 a, int precision)
+static FIXED11_21 fp_cos(FIXED11_21 a, uint32_t precision)
 {
     FIXED11_21 div, PI;
     PI.full = FP_PI21_16;
@@ -237,4 +236,15 @@ static FIXED11_21 fp_cos(FIXED11_21 a, int precision)
     return fp_sin(fp_add(a, div), precision);
 }
 
-const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_division, fp_add, fp_subtract, fp_pow, fp_sin, fp_cos, factorial, fixed_to_float, float_to_fixed};
+const struct fixed_point_driver fixed_point_driver = {
+    fp_multiply, 
+    // fp_division, 
+    fp_add, 
+    fp_subtract, 
+    fp_pow, 
+    fp_sin, 
+    fp_cos, 
+    factorial, 
+    fixed_to_float, 
+    float_to_fixed
+};
