@@ -1,5 +1,43 @@
 #include "./compression.h"
 
+static int32_t fp_multiply32(int32_t a, int32_t b)
+{
+    int64_t tmp;
+    int64_t IL;
+
+    int32_t result;
+
+    // Save result in double size
+    tmp = (int32_t)a * (int32_t)b;
+
+    // Take out midder section of bits
+    tmp = tmp + (1 << (16 - 1));
+    tmp = tmp >> 16;
+
+    // Saturate the result if over or under minimum value.
+    
+    IL = tmp;
+
+    result = IL;
+
+    return result;
+}
+
+static double fixed_to_float32(int32_t input)
+{
+    double res = 0;
+    res = ((double)input / (double)(1 << 16));
+    return res;
+}
+
+static int32_t float_to_fixed32(double input)
+{
+    int32_t res;
+    res = (int32_t)(input * (1 << 16));
+    return res;
+}
+
+
 /**
  * @brief Transforms data into the DCT domian 
  * @param input_vector The input values given in FP representation.
@@ -8,16 +46,18 @@
  */
 static void dct_transform(int16_t *input_vector_and_result, unsigned int block_size)
 {
-    int32_t sum, imme;
-    int16_t fac, half, iter, iter2, tmp1;
+    int32_t sum, fac, tmp1,iter, iter2, half;
+    // int16_t ;
     int16_t result[SIGNAL_LEN];
 
     // Should be precomputed
-    fac = 0x0324 / block_size; /* PI / block_size*/
-    half = 0x0080;             /* 0.5 */
+    // fac = 0x0324 / block_size; /* PI / block_size*/
+    fac = float_to_fixed32(3.14159265359) / block_size; /* PI / block_size*/
+    // half = 0x0080;             /* 0.5 */
+    half = float_to_fixed32(0.5);
 
-    printf("Fact: %.4f\n", FP.fixed_to_float16(fac));
-    printf("Half: %.4f\n", FP.fixed_to_float16(half));
+    printf("Fact: %.4f\n", fixed_to_float32(fac));
+    printf("Half: %.4f\n", fixed_to_float32(half));
 
     //Set iterators fractions to 0
     for (iter2 = 0; iter2 < block_size; iter2++)
@@ -25,11 +65,12 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
         sum = 0;
         for (iter = 0; iter < block_size; iter++)
         {
-            tmp1 = FP.fp_multiply(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART)), fac);
-            imme = FP.fp_multiply(input_vector_and_result[iter], FP.fp_cos(tmp1));
-            sum += imme;
-            printf("%d. SUM : %.2f \t", iter, FP.fixed_to_float16(tmp1));
-            // printf("Imme : %.2f \t",FP.fixed_to_float16(imme));
+            tmp1 = fp_multiply32(fp_multiply32(half + (iter << 16), (iter2 << 16)), fac);
+            // imme = FP.fp_multiply(input_vector_and_result[iter], FP.fp_cos(tmp1));
+            // sum += imme;
+            // printf("%d. SUM : %.2f \t", iter, FP.fixed_to_float16(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART))));
+            printf("Imme : %.2f \t",fixed_to_float32(half + (iter << 16)));
+            printf("tmp : %.2f \t",fixed_to_float32(tmp1));
         }
 
         printf("\n\n");

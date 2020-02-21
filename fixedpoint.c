@@ -37,6 +37,12 @@ static int16_t fp_multiply(int16_t a, int16_t b)
     tmp = tmp + (1 << (FPART - 1));
     tmp = tmp >> FPART;
 
+    if(tmp > INT16_MAX){
+        printf("MULTIPLICATION OVERFLOW!!!!");
+    }
+    // #ifdef DEBUG
+    // #endif
+
     // // Saturate the result if over or under minimum value.
     // if (tmp > INT32_MAX) /* saturate the result before assignment */
     //     Z = INT32_MAX;

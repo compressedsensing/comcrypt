@@ -3,6 +3,7 @@
 
 #define SIGNAL_LEN 128
 #define BLOCK_LEN SIGNAL_LEN * 4
+#define DEBUG 1
 
 #ifndef LOG_MODULE
 #define LOG_MODULE "Comcrypt"
