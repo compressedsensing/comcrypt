@@ -2,19 +2,19 @@
 
 //Relentlessly stolen from: https://www.eetimes.com/fixed-point-math-in-c-2/#
 
-// static double fixed_to_float16(int16_t input)
-// {
-//     double res = 0;
-//     res = ((double)input / (double)(1 << FPART));
-//     return res;
-// }
+static double fixed_to_float16(int16_t input)
+{
+    double res = 0;
+    res = ((double)input / (double)(1 << FPART));
+    return res;
+}
 
-// static int16_t float_to_fixed16(double input)
-// {
-//     int16_t res;
-//     res = (int16_t)(input * (1 << FPART));
-//     return res;
-// }
+static int16_t float_to_fixed16(double input)
+{
+    int16_t res;
+    res = (int16_t)(input * (1 << FPART));
+    return res;
+}
 
 /**
  * @brief Multiplies two fixed point represented numbers with each other
@@ -154,4 +154,4 @@ static int16_t fp_cos(int16_t i)
 //     return fp_sin(fp_add(a, div), precision);
 // }
 
-const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_cos};
+const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_cos, fixed_to_float16, float_to_fixed16};

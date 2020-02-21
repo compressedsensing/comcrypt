@@ -1,7 +1,7 @@
 #ifndef CONFIGURATION_H_
 #define CONFIGURATION_H_
 
-#define SIGNAL_LEN 512
+#define SIGNAL_LEN 128
 #define BLOCK_LEN SIGNAL_LEN * 4
 
 #ifndef LOG_MODULE

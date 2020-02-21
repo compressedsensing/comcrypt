@@ -8,24 +8,31 @@
  */
 static void dct_transform(int16_t *input_vector_and_result, unsigned int block_size)
 {
-    int16_t fac, half, iter, iter2, sum;
+    int32_t sum, imme;
+    int16_t fac, half, iter, iter2, tmp1;
     int16_t result[SIGNAL_LEN];
 
     // Should be precomputed
     fac = 0x0324 / block_size; /* PI / block_size*/
-    half = 0x0080; /* 0.5 */
+    half = 0x0080;             /* 0.5 */
+
+    printf("Fact: %.4f\n", FP.fixed_to_float16(fac));
+    printf("Half: %.4f\n", FP.fixed_to_float16(half));
 
     //Set iterators fractions to 0
     for (iter2 = 0; iter2 < block_size; iter2++)
     {
         sum = 0;
-        for (iter= 0; iter < block_size; iter++)
+        for (iter = 0; iter < block_size; iter++)
         {
-            sum += FP.fp_multiply(input_vector_and_result[iter],FP.fp_cos(FP.fp_multiply(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART)), fac)));
-            // printf("SUM : %.2f \t",FP.fixed_to_float16(sum));
+            tmp1 = FP.fp_multiply(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART)), fac);
+            imme = FP.fp_multiply(input_vector_and_result[iter], FP.fp_cos(tmp1));
+            sum += imme;
+            printf("%d. SUM : %.2f \t", iter, FP.fixed_to_float16(tmp1));
+            // printf("Imme : %.2f \t",FP.fixed_to_float16(imme));
         }
 
-        // printf("\n\n");
+        printf("\n\n");
         result[iter2] = sum;
     }
     for (iter = 0; iter < SIGNAL_LEN; iter++)
@@ -81,7 +88,8 @@ int pushBits(huffman_codeword huff_code, uint8_t *bitstring, uint16_t bitstring_
     uint16_t bitstr_len = bitstring_length;
     uint16_t start = max_code_word_size - huff_code.word_length;
     uint8_t bit;
-    for (i = 0; i < huff_code.word_length; i++) {
+    for (i = 0; i < huff_code.word_length; i++)
+    {
         bit = (((huff_code.word << (start + i)) & sig_bit) >> last_byte_bit) >> 8;
         bitstring[bitstr_len >> 3] |= bit;
         bitstr_len++;
@@ -128,8 +136,7 @@ static huffman_metadata huffman_encode(uint8_t *block_and_result, uint16_t lengt
     return h_data;
 }
 const struct compression_driver compression_driver = {
-    dct_transform, 
-    threshold, 
-    // simple_truncate, 
-    huffman_encode
-};
+    dct_transform,
+    threshold,
+    // simple_truncate,
+    huffman_encode};
