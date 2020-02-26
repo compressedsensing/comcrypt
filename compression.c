@@ -28,7 +28,7 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
         // printf("\n\n");
         result[iter2] = sum;
     }
-    for (iter = 0; iter < SIGNAL_LEN; iter++)
+    for (iter = 0; iter < block_size; iter++)
     {
         input_vector_and_result[iter] = result[iter];
     }
@@ -40,9 +40,9 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
  * @param threshold The given threshold
  * @param length The length of the DCT vector 
  */
-static void threshold(int16_t *dct_vector, int16_t threshold, unsigned int length)
+static void threshold(int16_t *dct_vector, int16_t threshold, uint16_t length)
 {
-    int i;
+    uint16_t i;
 
     for (i = 0; i < length; i++)
     {
@@ -72,6 +72,15 @@ static void threshold(int16_t *dct_vector, int16_t threshold, unsigned int lengt
 //     }
 // }
 
+void mem_copy(uint8_t *dest, uint8_t *src, uint16_t length)
+{
+    uint16_t i;
+    for (i = 0; i < length; i++)
+    {
+        dest[i] = src[i];
+    }
+}
+
 int pushBits(huffman_codeword huff_code, uint8_t *bitstring, uint16_t bitstring_length)
 {
     uint16_t max_code_word_size = sizeof(uint16_t) * 8;
@@ -96,34 +105,38 @@ static huffman_metadata huffman_encode(uint8_t *block_and_result, uint16_t lengt
     uint16_t i;
     uint8_t firstHalf;
     uint8_t secondHalf;
-    uint8_t bitstring[BLOCK_LEN * 2] = {0};
+    uint8_t bitstring[BLOCK_LEN * 2];
     uint16_t bitstr_len = 0;
-    huffman_codeword huff_code;
+    huffman_codeword huff_code1, huff_code2;
     uint8_t remainder;
-    uint16_t byte_length;
+    memset(bitstring,0, BLOCK_LEN);
     for (i = 0; i < length; i++)
     {
         // Push first half to final huff code
         firstHalf = (block_and_result[i] & 0xF0) >> 4;
-        huff_code = codebook[firstHalf];
-        bitstr_len = pushBits(huff_code, bitstring, bitstr_len);
-
-        // Repeat for second half
+        huff_code1 = codebook[firstHalf];
         secondHalf = block_and_result[i] & 0x0F;
-        huff_code = codebook[secondHalf];
-        bitstr_len = pushBits(huff_code, bitstring, bitstr_len);
+        huff_code2 = codebook[secondHalf];
+        // If the huff code exceeds original length - there is no point in doing it
+        // Return success = -1 and keep the block as is
+        if (((bitstr_len >> 3) + huff_code1.word_length + huff_code2.word_length + h_eof.word_length) > (BLOCK_LEN - 1)) {
+            h_data.byte_length = BLOCK_LEN;
+            h_data.success = -1;
+            return h_data;
+        }
+        bitstr_len = pushBits(huff_code1, bitstring, bitstr_len);
+        bitstr_len = pushBits(huff_code2, bitstring, bitstr_len);
     }
     // When done push eof
     bitstr_len = pushBits(h_eof, bitstring, bitstr_len);
 
     remainder = bitstr_len % 8 ? 1 : 0;
 
-    byte_length = (bitstr_len >> 3) + remainder;
-    h_data.byte_length = byte_length;
+    h_data.byte_length = (bitstr_len >> 3) + remainder;
     memset(block_and_result, 0, length);
-    memcpy(block_and_result, bitstring, byte_length);
+    mem_copy(block_and_result, bitstring, h_data.byte_length);
     h_data.length = bitstr_len;
-    h_data.success = byte_length > length ? -1 : 1;
+    h_data.success = 1;
 
     return h_data;
 }

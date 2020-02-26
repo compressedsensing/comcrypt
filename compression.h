@@ -5,6 +5,7 @@
 #include "./configuration.h"
 #include "string.h"
 #include "./fixedpoint.h"
+#include "sys/log.h"
 
 #define COMPRESS compression_driver
 
@@ -51,7 +52,7 @@ struct compression_driver {
   /**
    * @brief Thresholds the DCT vector.
    */
-  void (*threshold)(int16_t *dct_vector, int16_t threshold, unsigned int length);
+  void (*threshold)(int16_t *dct_vector, int16_t threshold, uint16_t length);
 
   // void (*simple_truncate)(FIXED11_21 *dct_vector,FIXED11_21 *result, uint16_t length, uint16_t result_length);
   // void (* dct_transform)(float* input_vector,float* res, unsigned int block_size);
