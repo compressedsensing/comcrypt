@@ -5,13 +5,12 @@
 #include "./configuration.h"
 #include "string.h"
 #include "./fixedpoint.h"
+#include "sys/log.h"
 
 #define COMPRESS compression_driver
 
 #define DEFAULT_HUFFMAN_CODEBOOK default_huffman_codebook
 #define DEFAULT_HUFFMAN_EOF default_huffman_eof
-
-#define COMPRESS compression_driver
 
 #define HUFFMAN_RESOLUTION 4 // Amount of bits to represent symbols
 #define HUFFMAN_BLOCK_MAX_SIZE 170
@@ -51,7 +50,7 @@ struct compression_driver {
   /**
    * @brief Thresholds the DCT vector.
    */
-  void (*threshold)(int16_t *dct_vector, int16_t threshold, unsigned int length);
+  void (*threshold)(int16_t *dct_vector, int16_t threshold, uint16_t length);
 
   // void (*simple_truncate)(FIXED11_21 *dct_vector,FIXED11_21 *result, uint16_t length, uint16_t result_length);
   // void (* dct_transform)(float* input_vector,float* res, unsigned int block_size);
