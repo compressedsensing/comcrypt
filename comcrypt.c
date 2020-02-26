@@ -94,8 +94,8 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   LOG_INFO_("Transformed data:\n");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
-    // LOG_INFO_("%08x", (unsigned int)signal[i]);
-    printf("%.2f\t", FP.fixed_to_float16(signal[i]));
+    LOG_INFO_("%08x", (unsigned int)signal[i]);
+    // printf("%.2f\t", FP.fixed_to_float16(signal[i]));
   }
   LOG_INFO_("\n");
 
