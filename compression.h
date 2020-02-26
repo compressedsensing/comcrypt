@@ -12,8 +12,6 @@
 #define DEFAULT_HUFFMAN_CODEBOOK default_huffman_codebook
 #define DEFAULT_HUFFMAN_EOF default_huffman_eof
 
-#define COMPRESS compression_driver
-
 #define HUFFMAN_RESOLUTION 4 // Amount of bits to represent symbols
 #define HUFFMAN_BLOCK_MAX_SIZE 170
 
