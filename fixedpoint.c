@@ -2,19 +2,19 @@
 
 //Relentlessly stolen from: https://www.eetimes.com/fixed-point-math-in-c-2/#
 
-// static double fixed_to_float16(int16_t input)
-// {
-//     double res = 0;
-//     res = ((double)input / (double)(1 << FPART));
-//     return res;
-// }
+static double fixed_to_float16(int16_t input)
+{
+    double res = 0;
+    res = ((double)input / (double)(1 << FPART));
+    return res;
+}
 
-// static int16_t float_to_fixed16(double input)
-// {
-//     int16_t res;
-//     res = (int16_t)(input * (1 << FPART));
-//     return res;
-// }
+static int16_t float_to_fixed16(double input)
+{
+    int16_t res;
+    res = (int16_t)(input * (1 << FPART));
+    return res;
+}
 
 /**
  * @brief Multiplies two fixed point represented numbers with each other
@@ -37,6 +37,12 @@ static int16_t fp_multiply(int16_t a, int16_t b)
     tmp = tmp + (1 << (FPART - 1));
     tmp = tmp >> FPART;
 
+    if(tmp > INT16_MAX){
+        printf("MULTIPLICATION OVERFLOW!!!!");
+    }
+    // #ifdef DEBUG
+    // #endif
+
     // // Saturate the result if over or under minimum value.
     // if (tmp > INT32_MAX) /* saturate the result before assignment */
     //     Z = INT32_MAX;
@@ -51,11 +57,56 @@ static int16_t fp_multiply(int16_t a, int16_t b)
     return result;
 }
 
+static int16_t fp_mult(int16_t a, int16_t b)
+{
+    int32_t tmp;
+    int32_t IL;
+
+    // long tmp, Z;
+    int16_t result;
+
+    // Save result in double size
+    tmp = (int32_t)a * (int32_t)b;
+
+    // Take out midder section of bits
+    tmp = tmp + (1 << (FPART - 1));
+    tmp = tmp >> FPART;
+
+    // if(tmp > INT16_MAX){
+    //     printf("MULTIPLICATION OVERFLOW!!!!");
+    // }
+    // #ifdef DEBUG
+    // #endif
+
+    // // Saturate the result if over or under minimum value.
+    // if (tmp > INT32_MAX) /* saturate the result before assignment */
+    //     Z = INT32_MAX;
+    // else if (tmp < INT32_MIN)
+    //     Z = INT32_MIN;
+    // else
+    
+    // if(tmp > INT16_MAX){
+    //     printf("MULTIPLICATION OVERFLOW!!!!");
+    // }
+    if(tmp > INT16_MAX){
+        IL = (int32_t)(tmp % 0x00010000);
+    }
+    // else {
+    IL = tmp;
+    // }
+
+    result = IL;
+
+    return result;
+}
+
 static int16_t fp_cos(int16_t i)
 {
     i += 0x0192;
+    // printf("i: %04x\t", i);
 
-    i = fp_multiply(0x145f, i);
+
+    i = fp_mult(0x145f, i);
     /* Convert (signed) input to a value between 0 and 8192. (8192 is pi/2, which is the region of the curve fit). */
     /* ------------------------------------------------------------------- */
     i <<= 1;
@@ -154,4 +205,4 @@ static int16_t fp_cos(int16_t i)
 //     return fp_sin(fp_add(a, div), precision);
 // }
 
-const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_cos};
+const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_cos, fixed_to_float16, float_to_fixed16};

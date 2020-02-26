@@ -4,16 +4,21 @@
 #include "net/routing/routing.h"
 #include "net/netstack.h"
 #include "net/ipv6/simple-udp.h"
+#include "sys/ctimer.h"
 #include "sys/log.h"
 #include "./configuration.h"
 
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
-#define SEND_INTERVAL (10 * CLOCK_SECOND)
+#define SEND_INTERVAL (5 * CLOCK_SECOND)
 
 static struct simple_udp_connection udp_conn;
+static struct ctimer timer;
+static huffman_metadata h_data;
+static uint8_t signal_bytes[BLOCK_LEN] = {0};
+static uip_ipaddr_t dest_ipaddr;
 
-static const huffman_codeword huffman_codebook[1 << HUFFMAN_RESOLUTION] = {
+static const huffman_codeword huffman_codebook[16] = {
     {0b1, 1}, {0b0000, 4}, {0b00100, 5}, {0b001111, 6}, {0b001010, 6}, {0b0010111, 7}, {0b0001100, 7}, {0b000110101, 9}, {0b0001101001, 10}, {0b00011011, 8}, {0b0010110, 7}, {0b000111, 6}, {0b001110, 6}, {0b00010, 5}, {0b00110, 5}, {0b01, 2}};
 
 static const huffman_codeword huffman_eof = {0b0001101000, 10};
@@ -80,22 +85,26 @@ udp_rx_callback(struct simple_udp_connection *c,
   LOG_INFO_("\n");
 }
 
+static void
+callback(void *ptr)
+{
+  LOG_INFO("Starting transmission loop\n");
+  LOG_INFO("Timer expired, check if receiver is reachable\n");
+  if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr)) {
+    /* Send to DAG root */
+    LOG_INFO("Sending to receiver mote\n");
+    simple_udp_sendto(&udp_conn, signal_bytes, h_data.byte_length, &dest_ipaddr);
+  } else {
+    LOG_INFO("Not reachable yet\n");
+  }
+  ctimer_reset(&timer);
+}
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(comcrypt_process, ev, data)
 {
   PROCESS_BEGIN();
-  static huffman_metadata h_data;
-  // static int16_t signal[SIGNAL_LEN];
-  static uint8_t signal_bytes[BLOCK_LEN] = {0};
-  uint16_t i;
-
-  static struct etimer periodic_timer;
-  uip_ipaddr_t dest_ipaddr;
-
-  // Read signal
-  // for (i = 0; i < SIGNAL_LEN; i++) {
-  //   signal[i] = sensor_data[i];
-  // }
+  static uint16_t i;
 
   // Pipeline
   LOG_INFO_("Initial data:\n");
@@ -144,7 +153,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   }
 
   LOG_INFO_("Encoded data\n");
-  for (i = 0; i < BLOCK_LEN; i++)
+  for (i = 0; i < h_data.byte_length; i++)
   {
     LOG_INFO_("%02x", signal_bytes[i]);
   }
@@ -153,7 +162,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   ENCRYPT.aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
 
   LOG_INFO_("Final data:\n");
-  for (i = 0; i < BLOCK_LEN; i++)
+  for (i = 0; i < h_data.byte_length; i++)
   {
     LOG_INFO_("%02x", signal_bytes[i]);
   }
@@ -164,21 +173,8 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
                       UDP_SERVER_PORT, udp_rx_callback);
   LOG_INFO("UDP initialized - setting timer\n");
-  etimer_set(&periodic_timer, SEND_INTERVAL);
   LOG_INFO("Timer set\n");
-  while (1) {
-    LOG_INFO("Starting transmission loop\n");
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
-    LOG_INFO("Timer expired, check if receiver is reachable\n");
-    if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr)) {
-      /* Send to DAG root */
-      LOG_INFO("Sending to receiver mote\n");
-      simple_udp_sendto(&udp_conn, signal_bytes, h_data.byte_length, &dest_ipaddr);
-    } else {
-      LOG_INFO("Not reachable yet\n");
-    }
-    etimer_set(&periodic_timer, SEND_INTERVAL - CLOCK_SECOND);
-  }
+  ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
 
   PROCESS_END();
   /*---------------------------------------------------------------------------*/
