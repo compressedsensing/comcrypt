@@ -29,12 +29,13 @@ udp_rx_callback(struct simple_udp_connection *c,
          uint16_t datalen)
 {
   uint16_t i;
-  LOG_INFO_("Received response:\n");
   for (i = 0; i < datalen; i++) {
     LOG_INFO_("%02x", data[i]);
   }
-  LOG_INFO_("\n");
-  simple_udp_sendto(&udp_conn, data, datalen, sender_addr);
+  if (datalen < 128) {
+    LOG_INFO_("\n\n");
+  }
+  // simple_udp_sendto(&udp_conn, data, datalen, sender_addr);
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(receive_process, ev, data)

@@ -1,7 +1,7 @@
 #ifndef CONFIGURATION_H_
 #define CONFIGURATION_H_
 
-#define SIGNAL_LEN 512
+#define SIGNAL_LEN 256
 #define BLOCK_LEN SIGNAL_LEN * 2
 #define DEBUG 1
 

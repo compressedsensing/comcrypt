@@ -14,9 +14,11 @@
 
 static struct simple_udp_connection udp_conn;
 static struct ctimer timer;
+static uint16_t i = 0;
 static huffman_metadata h_data;
 static uint8_t signal_bytes[BLOCK_LEN] = {0};
-static uip_ipaddr_t dest_ipaddr;
+// fe80::212:7400:1a45:c958
+static uip_ipaddr_t dest_ipaddr = {{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x12, 0x74, 0x00, 0x1a, 0x45, 0xc9, 0x58}};
 
 static const huffman_codeword huffman_codebook[16] = {
     {0b1, 1}, {0b0000, 4}, {0b00100, 5}, {0b001111, 6}, {0b001010, 6}, {0b0010111, 7}, {0b0001100, 7}, {0b000110101, 9}, {0b0001101001, 10}, {0b00011011, 8}, {0b0010110, 7}, {0b000111, 6}, {0b001110, 6}, {0b00010, 5}, {0b00110, 5}, {0b01, 2}};
@@ -48,22 +50,8 @@ static int16_t signal[SIGNAL_LEN] = { 242,242,242,242,242,242,242,242,243,243,24
  242,242,241,241,241,241,240,240,240,241,241,242,242,242,242,242,242,241,
  242,242,242,243,242,243,243,243,244,243,242,242,243,242,243,243,243,243,
  243,243,242,242,242,242,242,241,241,241,241,241,241,242,241,240,240,240,
- 239,238,239,240,240,240,240,240,240,239,239,238,238,238,238,239,239,238,
- 239,239,238,238,239,239,239,239,240,240,241,242,242,243,243,243,244,244,
- 243,243,243,242,241,241,242,241,241,240,240,239,238,237,237,237,237,237,
- 236,236,234,234,233,233,234,233,235,235,236,237,236,236,236,235,235,234,
- 234,234,235,235,235,236,236,236,236,236,236,236,235,235,236,237,239,242,
- 247,253,261,272,282,294,304,313,319,319,313,300,280,255,229,203,185,175,
- 175,184,196,209,221,231,236,240,241,241,241,240,240,239,240,242,242,243,
- 244,244,245,245,246,247,247,248,249,250,251,252,253,254,254,254,255,254,
- 255,254,255,255,255,256,256,256,256,256,256,256,256,257,258,258,260,260,
- 261,262,262,263,263,264,264,266,267,268,269,269,270,270,270,270,270,270,
- 270,271,271,270,270,271,271,271,271,270,270,269,268,268,267,266,266,264,
- 264,263,261,259,258,256,254,253,251,251,250,250,249,248,247,246,244,243,
- 243,242,242,242,242,242,242,242,242,241,240,241,240,240,241,240,240,241,
- 242,241,241,240,241,240,240,241,241,241,242,242,242,243,243,243,242,242,
- 242,242,242,243,243,243,243,243 };
-static const int16_t threshhold = 0b0000001100000000;
+ 239,238,239,240 };
+static const int16_t threshhold = 0b0000001000000001;
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
 AUTOSTART_PROCESSES(&comcrypt_process);
@@ -77,7 +65,6 @@ udp_rx_callback(struct simple_udp_connection *c,
                 const uint8_t *data,
                 uint16_t datalen)
 {
-  uint16_t i;
   for (i = 0; i < datalen; i++)
   {
     LOG_INFO_("%02x", data[i]);
@@ -90,13 +77,18 @@ callback(void *ptr)
 {
   LOG_INFO("Starting transmission loop\n");
   LOG_INFO("Timer expired, check if receiver is reachable\n");
-  if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr)) {
+  // if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr)) {
     /* Send to DAG root */
+    uint8_t buf[128] = {0};
     LOG_INFO("Sending to receiver mote\n");
-    simple_udp_sendto(&udp_conn, signal_bytes, h_data.byte_length, &dest_ipaddr);
-  } else {
-    LOG_INFO("Not reachable yet\n");
-  }
+    for (i = 0; i <= h_data.byte_length / 128; i++) {
+      memset(buf, 0, 128);
+      memcpy(buf, signal_bytes + (i * 128), i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128);
+      simple_udp_sendto(&udp_conn, buf, i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128, &dest_ipaddr);
+    }
+  // } else {
+  //   LOG_INFO("Not reachable yet\n");
+  // }
   ctimer_reset(&timer);
 }
 
@@ -104,7 +96,6 @@ callback(void *ptr)
 PROCESS_THREAD(comcrypt_process, ev, data)
 {
   PROCESS_BEGIN();
-  static uint16_t i;
 
   // Pipeline
   LOG_INFO_("Initial data:\n");
@@ -151,7 +142,6 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   if (h_data.success == -1) {
     LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
   }
-
   LOG_INFO_("Encoded data\n");
   for (i = 0; i < h_data.byte_length; i++)
   {
