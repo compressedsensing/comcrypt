@@ -51,7 +51,7 @@ static int16_t signal[SIGNAL_LEN] = { 242,242,242,242,242,242,242,242,243,243,24
  242,242,242,243,242,243,243,243,244,243,242,242,243,242,243,243,243,243,
  243,243,242,242,242,242,242,241,241,241,241,241,241,242,241,240,240,240,
  239,238,239,240 };
-static const int16_t threshhold = 0b0000000100000000;
+static const int16_t threshhold = 0b0000001000000001;
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
 AUTOSTART_PROCESSES(&comcrypt_process);
@@ -114,14 +114,14 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   }
   LOG_INFO_("\n");
 
-  // COMPRESS.threshold(signal, threshhold, SIGNAL_LEN);
+  COMPRESS.threshold(signal, threshhold, SIGNAL_LEN);
 
-  // LOG_INFO_("Thresholded data:\n");
-  // for (i = 0; i < SIGNAL_LEN; i++)
-  // {
-  //   LOG_INFO_("%04x", signal[i]);
-  // }
-  // LOG_INFO_("\n");
+  LOG_INFO_("Thresholded data:\n");
+  for (i = 0; i < SIGNAL_LEN; i++)
+  {
+    LOG_INFO_("%04x", signal[i]);
+  }
+  LOG_INFO_("\n");
 
   // Fixed point to bytes
   for (i = 0; i < BLOCK_LEN; i += 2)
