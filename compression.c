@@ -1,5 +1,6 @@
 #include "./compression.h"
 
+#define NPART 20
 static int32_t fp_multiply32(int32_t a, int32_t b)
 {
     int64_t tmp;
@@ -11,8 +12,8 @@ static int32_t fp_multiply32(int32_t a, int32_t b)
     tmp = (int64_t)a * (int64_t)b;
 
     // Take out midder section of bits
-    tmp = tmp + (1 << (16 - 1));
-    tmp = tmp >> 16;
+    tmp = tmp + (1 << (NPART - 1));
+    tmp = tmp >> NPART;
 
     // Saturate the result if over or under minimum value.
 
@@ -23,19 +24,19 @@ static int32_t fp_multiply32(int32_t a, int32_t b)
     return result;
 }
 
-// static double fixed_to_float32(int32_t input)
-// {
-//     double res = 0;
-//     res = ((double)input / (double)(1 << 16));
-//     return res;
-// }
+static double fixed_to_float32(int32_t input)
+{
+    double res = 0;
+    res = ((double)input / (double)(1 << NPART));
+    return res;
+}
 
-// static int32_t float_to_fixed32(double input)
-// {
-//     int32_t res;
-//     res = (int32_t)(input * (1 << 16));
-//     return res;
-// }
+static int32_t float_to_fixed32(double input)
+{
+    int32_t res;
+    res = (int32_t)(input * (1 << NPART));
+    return res;
+}
 
 /**
  * @brief Transforms data into the DCT domian 
@@ -50,12 +51,12 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
     int16_t result[SIGNAL_LEN];
 
     // Should be precomputed
-    fac = 0x0003243f / block_size; /* PI / block_size*/
-    // fac = float_to_fixed32(3.14159265359) / block_size; /* PI / block_size*/
+    // fac = 0x0003243f / block_size; /* PI / block_size*/
+    fac = float_to_fixed32(3.14159265359) / block_size; /* PI / block_size*/
 
     // printf("HALF %08x\n\n",float_to_fixed32(3.14159265359));
-    half = 0x00008000;             /* 0.5 */
-    // half = float_to_fixed32(fac);
+    // half = 0x00008000;             /* 0.5 */
+    half = float_to_fixed32(0.5);
 
     // printf("Fact: %.4f\n", fixed_to_float32(fac));
     // printf("Half: %.4f\n", fixed_to_float32(half));
@@ -66,19 +67,19 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
         sum = 0;
         for (iter = 0; iter < block_size; iter++)
         {
-            tmp1 = fp_multiply32(fp_multiply32(half + (iter << 16), (iter2 << 16)), fac);
-            imme = fp_multiply32(((int32_t)input_vector_and_result[iter]) << 8, ((int32_t)FP.fp_cos(tmp1 >> 8)) << 8);
+            tmp1 = fp_multiply32(fp_multiply32(half + (iter << NPART), (iter2 << NPART)), fac);
+            imme = fp_multiply32(((int32_t)input_vector_and_result[iter]) << (NPART-8), ((int32_t)FP.fp_cos(tmp1 >> (NPART-8))) << (NPART-8));
             sum += imme;
             // printf("%d. SUM : %.2f \t", iter, FP.fixed_to_float16(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART))));
-            // printf("Imme : %.2f \t", fixed_to_float32(imme));
+            printf("Imme %d: %.4f \t",iter, fixed_to_float32(imme));
             // printf("SUM %d : %.2f \t", iter,fixed_to_float32(sum));
-            // printf("tmp : %.2f \t",fixed_to_float32(tmp1));
+            // printf("tmp %d : %.2f \t",iter,fixed_to_float32(tmp1));
             // printf("tmmp2 : %.2f \t",fixed_to_float32(fp_multiply32(float_to_fixed32(1.0),float_to_fixed32(1.0))));
             // printf("tmmp3 : %08x \t", float_to_fixed32(1.0));
         }
 
         // printf("\n\n");
-        result[iter2] = (int16_t)(sum >> 8);
+        result[iter2] = (int16_t)(sum >> (NPART-8));
     }
     for (iter = 0; iter < block_size; iter++)
     {

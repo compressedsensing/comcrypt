@@ -108,11 +108,13 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   COMPRESS.dct_transform(signal, SIGNAL_LEN);
 
   LOG_INFO_("Transformed data:\n");
+    LOG_INFO_("[");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
-    LOG_INFO_("%04x", signal[i]);
+    // LOG_INFO_("%04x", signal[i]);
+    LOG_INFO_("%.6f,", FP.fixed_to_float16(signal[i]));
   }
-  LOG_INFO_("\n");
+  LOG_INFO_("]\n");
 
   COMPRESS.threshold(signal, threshhold, SIGNAL_LEN);
 
