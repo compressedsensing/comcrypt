@@ -13,7 +13,7 @@
 #define SEND_INTERVAL (5 * CLOCK_SECOND)
 
 static struct simple_udp_connection udp_conn;
-static struct ctimer timer;
+// static struct ctimer timer;
 static uint16_t i = 0;
 static huffman_metadata h_data;
 static uint8_t signal_bytes[BLOCK_LEN] = {0};
@@ -72,56 +72,67 @@ udp_rx_callback(struct simple_udp_connection *c,
   LOG_INFO_("\n");
 }
 
-static void
-callback(void *ptr)
-{
-  LOG_INFO("Starting transmission loop\n");
-  LOG_INFO("Timer expired, check if receiver is reachable\n");
-  // if (NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr)) {
-    /* Send to DAG root */
-    uint8_t buf[128] = {0};
-    LOG_INFO("Sending to receiver mote\n");
-    for (i = 0; i <= h_data.byte_length / 128; i++) {
-      memset(buf, 0, 128);
-      memcpy(buf, signal_bytes + (i * 128), i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128);
-      simple_udp_sendto(&udp_conn, buf, i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128, &dest_ipaddr);
-    }
-  // } else {
-  //   LOG_INFO("Not reachable yet\n");
-  // }
-  ctimer_reset(&timer);
+static void send_packets() {
+  NETSTACK_RADIO.on();
+  uint8_t buf[128] = {0};
+  #if DEBUG
+  LOG_INFO("Sending to receiver mote\n");
+  #endif
+  for (i = 0; i <= h_data.byte_length / 128; i++) {
+    memset(buf, 0, 128);
+    memcpy(buf, signal_bytes + (i * 128), i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128);
+    simple_udp_sendto(&udp_conn, buf, i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128, &dest_ipaddr);
+  }
+  NETSTACK_RADIO.off();
 }
+
+// static void
+// callback(void *ptr)
+// {
+//   #if DEBUG
+//   LOG_INFO("Starting transmission loop\n");
+//   LOG_INFO("Timer expired, check if receiver is reachable\n");
+//   #endif
+//   send_packets();
+//   ctimer_reset(&timer);
+// }
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(comcrypt_process, ev, data)
 {
   PROCESS_BEGIN();
-
+  NETSTACK_RADIO.off();
   // Pipeline
+  #if DEBUG
   LOG_INFO_("Initial data:\n");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
     LOG_INFO_("%04x", signal[i]);
   }
   LOG_INFO_("\n");
+  #endif
 
   COMPRESS.dct_transform(signal, SIGNAL_LEN);
 
+  #if DEBUG
   LOG_INFO_("Transformed data:\n");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
     LOG_INFO_("%04x", signal[i]);
   }
   LOG_INFO_("\n");
+  #endif
 
   COMPRESS.threshold(signal, threshhold, SIGNAL_LEN);
 
+  #if DEBUG
   LOG_INFO_("Thresholded data:\n");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
     LOG_INFO_("%04x", signal[i]);
   }
   LOG_INFO_("\n");
+  #endif
 
   // Fixed point to bytes
   for (i = 0; i < BLOCK_LEN; i += 2)
@@ -130,27 +141,33 @@ PROCESS_THREAD(comcrypt_process, ev, data)
     signal_bytes[i + 1] = (uint8_t)((signal[i >> 1] & 0x00FF) >> 0);
   }
 
+  #if DEBUG
   LOG_INFO_("Byte data:\n");
   for (i = 0; i < BLOCK_LEN; i++)
   {
     LOG_INFO_("%02x", signal_bytes[i]);
   }
   LOG_INFO_("\n");
+  #endif
 
   h_data = COMPRESS.huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
   
   if (h_data.success == -1) {
     LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
   }
+
+  #if DEBUG
   LOG_INFO_("Encoded data\n");
   for (i = 0; i < h_data.byte_length; i++)
   {
     LOG_INFO_("%02x", signal_bytes[i]);
   }
   LOG_INFO_("\n");
+  #endif
 
   ENCRYPT.aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
 
+  #if DEBUG
   LOG_INFO_("Final data:\n");
   for (i = 0; i < h_data.byte_length; i++)
   {
@@ -159,12 +176,17 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   LOG_INFO_("\n");
 
   LOG_INFO("Initialize UDP\n");
+  #endif
   /* Initialize UDP connection */
   simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
                       UDP_SERVER_PORT, udp_rx_callback);
+  
+  #if DEBUG
   LOG_INFO("UDP initialized - setting timer\n");
   LOG_INFO("Timer set\n");
-  ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
+  #endif
+  // ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
+  send_packets();
 
   PROCESS_END();
   /*---------------------------------------------------------------------------*/
