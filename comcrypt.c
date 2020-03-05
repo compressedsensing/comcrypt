@@ -7,6 +7,7 @@
 #include "sys/ctimer.h"
 #include "sys/log.h"
 #include "./configuration.h"
+#include "./fixedpoint.h"
 
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
@@ -52,6 +53,7 @@ static int16_t signal[SIGNAL_LEN] = { 242,242,242,242,242,242,242,242,243,243,24
  243,243,242,242,242,242,242,241,241,241,241,241,241,242,241,240,240,240,
  239,238,239,240 };
 static const int16_t threshhold = 0b0000001000000001;
+// static const int16_t threshhold = FP.float_to_fixed16(0.8);
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
 AUTOSTART_PROCESSES(&comcrypt_process);
@@ -116,9 +118,11 @@ PROCESS_THREAD(comcrypt_process, ev, data)
 
   #if DEBUG
   LOG_INFO_("Transformed data:\n");
+    LOG_INFO_("[");
   for (i = 0; i < SIGNAL_LEN; i++)
   {
-    LOG_INFO_("%04x", signal[i]);
+    // LOG_INFO_("%04x", signal[i]);
+    LOG_INFO_("%.6f,", FP.fixed_to_float16(signal[i]));
   }
   LOG_INFO_("\n");
   #endif
@@ -130,6 +134,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   for (i = 0; i < SIGNAL_LEN; i++)
   {
     LOG_INFO_("%04x", signal[i]);
+    // LOG_INFO_("%.6f,", FP.fixed_to_float16(signal[i]));
   }
   LOG_INFO_("\n");
   #endif
