@@ -10,8 +10,8 @@
 // #define FP_PI 0b00000000011001001000011111101101
 // #define FP_PI21_16 0b00000000000000000001100100100001
 
-#define IPART 8
-#define FPART 8
+#define IPART 5
+#define FPART 11
 #define NPART 20
 
 struct fixed_point_driver
