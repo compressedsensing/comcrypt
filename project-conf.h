@@ -16,7 +16,7 @@
 #define BLOCK_LEN SIGNAL_LEN * 2
 
 #ifndef FLOAT
-#define FLOAT 1
+#define FLOAT 0
 #endif
 
 // #undef QUEUEBUF_CONF_NUM
