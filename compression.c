@@ -67,34 +67,30 @@ static const int16_t c[256] = { 128,181,181,180,180,180,180,180,180,180,180,180,
   24, 23, 22, 21, 19, 18, 17, 16, 15, 14, 13, 12, 11,  9,  8,  7,  6,  5,
    4,  3,  2,  1 };
 
-static void dct_64_256(int16_t *input_vector_and_result, unsigned int block_size)
+/**
+ * @brief Transforms data into the DCT domian using only 100 DCT coefficients
+ * @param input_vector The input values given in FP representation.
+ * @param result The result vector
+ */
+static void dct_100_256(int16_t *input_vector_and_result)
 {
     int16_t result[SIGNAL_LEN] = {0};
     int16_t m = 0, n = 0;
     int8_t sign = 1;
-    int32_t sum = 0;
-    
-    // for(n = 0; n < SIGNAL_LEN; n++) {
-    //     sum += input_vector_and_result[n];
-    // }
-    // result[0] = sum;
+    int16_t sum = 0;
 
-    for (m = 0; m < 100; m++)
-    {
+    for (m = 0; m < 100; m++) {
         sum = 0;
-        for (n = 0; n < SIGNAL_LEN; n++)
-        {
+        for (n = 0; n < SIGNAL_LEN; n++) {
             sign = INDEX_FORMULA(m,n) / SIGNAL_LEN / 2 % 2 == 0 ? -1 : 1;
-            if ((INDEX_FORMULA(m,n) / SIGNAL_LEN) % 2 == 0)
-            {
-                sum += FP.fp_multiply32((int32_t)(input_vector_and_result[n]) << (NPART - FPART), -sign * (int32_t)(c[INDEX_FORMULA(m,n) % SIGNAL_LEN]) << (NPART - FPART));
+            if ((INDEX_FORMULA(m,n) / SIGNAL_LEN) % 2 == 0) {
+                sum += FP.fp_multiply(input_vector_and_result[n], -sign * c[INDEX_FORMULA(m,n) % SIGNAL_LEN]);
             }
-            else
-            {
-                sum += FP.fp_multiply32((int32_t)(input_vector_and_result[n]) << (NPART - FPART), sign * ((int32_t)(c[SIGNAL_LEN - INDEX_FORMULA(m,n) % SIGNAL_LEN]) << (NPART - FPART)));
+            else {
+                sum += FP.fp_multiply(input_vector_and_result[n], sign * c[SIGNAL_LEN - INDEX_FORMULA(m,n) % SIGNAL_LEN]);
             }
         }
-        result[m] = (int16_t)(sum >> (NPART - FPART));
+        result[m] = sum;
     }
     memset(input_vector_and_result, 0, BLOCK_LEN);
     memcpy(input_vector_and_result, result, 100);
@@ -220,4 +216,4 @@ const struct compression_driver compression_driver = {
     threshold,
     // simple_truncate,
     huffman_encode,
-    dct_64_256};
+    dct_100_256};

@@ -59,8 +59,12 @@ struct compression_driver {
    * \brief Huffman encodes based on the codebook defined in HUFFMAN_CODEBOOK
    */
   huffman_metadata (* huffman_encode)(uint8_t *block, uint16_t length, const huffman_codeword *codebook, const huffman_codeword h_eof);
-
-  void (*dct_64_256)(int16_t *input_vector_and_result, unsigned int block_size);
+  /**
+ * @brief Transforms data into the DCT domian using only 100 DCT coefficients
+ * @param input_vector The input values given in FP representation.
+ * @param result The result vector
+ */
+  void (*dct_100_256)(int16_t *input_vector_and_result);
 };
 
 // Huffman variables

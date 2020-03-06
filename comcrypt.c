@@ -13,14 +13,14 @@
 #define UDP_SERVER_PORT 5678
 #define SEND_INTERVAL (5 * CLOCK_SECOND)
 
-// static struct simple_udp_connection udp_conn;
-// static struct ctimer timer;
+static struct simple_udp_connection udp_conn;
+static struct ctimer timer;
 static uint16_t i = 0;
 static uint8_t state = 0;
 static huffman_metadata h_data;
 static uint8_t signal_bytes[BLOCK_LEN] = {0};
 // fe80::212:7400:1a45:c958
-// static uip_ipaddr_t dest_ipaddr = {{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x12, 0x74, 0x00, 0x1a, 0x45, 0xc9, 0x58}};
+static uip_ipaddr_t dest_ipaddr = {{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x12, 0x74, 0x00, 0x1a, 0x45, 0xc9, 0x58}};
 
 const huffman_codeword huffman_codebook[16] = {
     {0b1, 1}, {0b0000, 4}, {0b00100, 5}, {0b001111, 6}, {0b001010, 6}, {0b0010111, 7}, {0b0001100, 7}, {0b000110101, 9}, {0b0001101001, 10}, {0b00011011, 8}, {0b0010110, 7}, {0b000111, 6}, {0b001110, 6}, {0b00010, 5}, {0b00110, 5}, {0b01, 2}};
@@ -58,26 +58,25 @@ static int16_t signal[SIGNAL_LEN] = { 1941,1941,1941,1941,1941,1941,1941,1941,19
  1943,1937,1937,1935,1935,1935,1935,1935,1935,1937,1931,1927,1921,1921,
  1912,1910,1918,1921 };
 static const int16_t threshhold = 0b0000000000000000;
-// static const int16_t threshhold = FP.float_to_fixed16(0.8);
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
 AUTOSTART_PROCESSES(&comcrypt_process);
 
-// static void
-// udp_rx_callback(struct simple_udp_connection *c,
-//                 const uip_ipaddr_t *sender_addr,
-//                 uint16_t sender_port,
-//                 const uip_ipaddr_t *receiver_addr,
-//                 uint16_t receiver_port,
-//                 const uint8_t *data,
-//                 uint16_t datalen)
-// {
-//   for (i = 0; i < datalen; i++)
-//   {
-//     LOG_INFO_("%02x", data[i]);
-//   }
-//   LOG_INFO_("\n");
-// }
+static void
+udp_rx_callback(struct simple_udp_connection *c,
+                const uip_ipaddr_t *sender_addr,
+                uint16_t sender_port,
+                const uip_ipaddr_t *receiver_addr,
+                uint16_t receiver_port,
+                const uint8_t *data,
+                uint16_t datalen)
+{
+  for (i = 0; i < datalen; i++)
+  {
+    LOG_INFO_("%02x", data[i]);
+  }
+  LOG_INFO_("\n");
+}
 
 static void convert_to_bytes() {
   for (i = 0; i < BLOCK_LEN; i += 2)
@@ -87,29 +86,28 @@ static void convert_to_bytes() {
   }
 }
 
-// static void send_packets() {
-//   NETSTACK_RADIO.on();
-//   uint8_t buf[128] = {0};
-//   #if DEBUG
-//   LOG_INFO("Sending to receiver mote\n");
-//   #endif
-//   for (i = 0; i <= h_data.byte_length / 128; i++) {
-//     memset(buf, 0, 128);
-//     memcpy(buf, signal_bytes + (i * 128), i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128);
-//     simple_udp_sendto(&udp_conn, buf, i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128, &dest_ipaddr);
-//   }
-//   NETSTACK_RADIO.off();
-// }
+static void send_packets() {
+  NETSTACK_RADIO.on();
+  uint8_t buf[128] = {0};
+  #if DEBUG
+  LOG_INFO("Sending to receiver mote\n");
+  #endif
+  for (i = 0; i <= h_data.byte_length / 128; i++) {
+    memset(buf, 0, 128);
+    memcpy(buf, signal_bytes + (i * 128), i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128);
+    simple_udp_sendto(&udp_conn, buf, i == h_data.byte_length / 128 ? h_data.byte_length % 128 : 128, &dest_ipaddr);
+  }
+  NETSTACK_RADIO.off();
+}
 
 static void
-callback()
+callback(void *prt)
 {
   switch (state)
   {
   case 0:
   {
-    LOG_INFO("Case 0\n");
-    COMPRESS.dct_64_256(signal, SIGNAL_LEN);
+    COMPRESS.dct_100_256(signal);
     #if DEBUG
     LOG_INFO_("Transformed data:\n");
     for (i = 0; i < SIGNAL_LEN; i++)
@@ -166,12 +164,14 @@ callback()
     #endif
     break;
   }
+  case 4:
+    send_packets();
+    break;
   default:
     break;
   }
   state++;
-  // ctimer_reset(&timer);
-  // send_packets();
+  ctimer_reset(&timer);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -187,25 +187,11 @@ PROCESS_THREAD(comcrypt_process, ev, data)
     }
     LOG_INFO_("\n");
     #endif
-    callback();
-    callback();
-    callback();
-    callback();
   /* Initialize UDP connection */
-  // simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
-  //                     UDP_SERVER_PORT, udp_rx_callback);
+  simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
+                      UDP_SERVER_PORT, udp_rx_callback);
 
-  // ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
-  // send_packets();
+  ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
 
   PROCESS_END();
-  /*---------------------------------------------------------------------------*/
 }
-
-// PROCESS_THREAD(action_process, ev, data)
-// {
-//   PROCESS_BEGIN();
-
-//   PROCESS_END();
-//   /*---------------------------------------------------------------------------*/
-// }
