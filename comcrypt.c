@@ -7,13 +7,14 @@
 #include "sys/ctimer.h"
 #include "sys/log.h"
 #include "./configuration.h"
+#include "./fixedpoint.h"
 
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
 #define SEND_INTERVAL (5 * CLOCK_SECOND)
 
 // static struct simple_udp_connection udp_conn;
-static struct ctimer timer;
+// static struct ctimer timer;
 static uint16_t i = 0;
 static uint8_t state = 0;
 static huffman_metadata h_data;
@@ -52,10 +53,10 @@ static int16_t signal[SIGNAL_LEN] = { 242,242,242,242,242,242,242,242,243,243,24
  242,242,242,243,242,243,243,243,244,243,242,242,243,242,243,243,243,243,
  243,243,242,242,242,242,242,241,241,241,241,241,241,242,241,240,240,240,
  239,238,239,240 };
-const int16_t threshhold = 0b0000001000000001;
+static const int16_t threshhold = 0b0000000000000000;
+// static const int16_t threshhold = FP.float_to_fixed16(0.8);
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
-PROCESS(action_process, "action process");
 AUTOSTART_PROCESSES(&comcrypt_process);
 
 // static void
@@ -97,14 +98,14 @@ static void convert_to_bytes() {
 // }
 
 static void
-callback(void *ptr)
+callback()
 {
   switch (state)
   {
   case 0:
   {
     LOG_INFO("Case 0\n");
-    COMPRESS.dct_transform(signal, SIGNAL_LEN);
+    COMPRESS.dct_64_256(signal, SIGNAL_LEN);
     #if DEBUG
     LOG_INFO_("Transformed data:\n");
     for (i = 0; i < SIGNAL_LEN; i++)
@@ -165,7 +166,7 @@ callback(void *ptr)
     break;
   }
   state++;
-  ctimer_reset(&timer);
+  // ctimer_reset(&timer);
   // send_packets();
 }
 
@@ -182,12 +183,15 @@ PROCESS_THREAD(comcrypt_process, ev, data)
     }
     LOG_INFO_("\n");
     #endif
-
+    callback();
+    callback();
+    callback();
+    callback();
   /* Initialize UDP connection */
   // simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
   //                     UDP_SERVER_PORT, udp_rx_callback);
 
-  ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
+  // ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
   // send_packets();
 
   PROCESS_END();

@@ -1,42 +1,5 @@
 #include "./compression.h"
 
-static int32_t fp_multiply32(int32_t a, int32_t b)
-{
-    int64_t tmp;
-    int64_t IL;
-
-    int32_t result;
-
-    // Save result in double size
-    tmp = (int64_t)a * (int64_t)b;
-
-    // Take out midder section of bits
-    tmp = tmp + (1 << (16 - 1));
-    tmp = tmp >> 16;
-
-    // Saturate the result if over or under minimum value.
-
-    IL = tmp;
-
-    result = IL;
-
-    return result;
-}
-
-// static double fixed_to_float32(int32_t input)
-// {
-//     double res = 0;
-//     res = ((double)input / (double)(1 << 16));
-//     return res;
-// }
-
-// static int32_t float_to_fixed32(double input)
-// {
-//     int32_t res;
-//     res = (int32_t)(input * (1 << 16));
-//     return res;
-// }
-
 /**
  * @brief Transforms data into the DCT domian 
  * @param input_vector The input values given in FP representation.
@@ -50,15 +13,17 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
     int16_t result[SIGNAL_LEN];
 
     // Should be precomputed
-    fac = 0x0003243f / block_size; /* PI / block_size*/
+    fac = 0x00003243;
+    //  / block_size; /* PI / block_size*/
     // fac = float_to_fixed32(3.14159265359) / block_size; /* PI / block_size*/
 
     // printf("HALF %08x\n\n",float_to_fixed32(3.14159265359));
-    half = 0x00008000;             /* 0.5 */
-    // half = float_to_fixed32(fac);
+    // half = 0x00008000;             /* 0.5 */
+    half = 0x00080000; /* 0.5 */
+    // half = float_to_fixed32(0.5);
 
-    // printf("Fact: %.4f\n", fixed_to_float32(fac));
-    // printf("Half: %.4f\n", fixed_to_float32(half));
+    // printf("Fact: %08x\n", fac);
+    // printf("Half: %08x\n", half);
 
     //Set iterators fractions to 0
     for (iter2 = 0; iter2 < block_size; iter2++)
@@ -66,24 +31,64 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
         sum = 0;
         for (iter = 0; iter < block_size; iter++)
         {
-            tmp1 = fp_multiply32(fp_multiply32(half + (iter << 16), (iter2 << 16)), fac);
-            imme = fp_multiply32(((int32_t)input_vector_and_result[iter]) << 8, ((int32_t)FP.fp_cos(tmp1 >> 8)) << 8);
+            tmp1 = FP.fp_multiply32(FP.fp_multiply32(half + (iter << NPART), (iter2 << NPART)), fac);
+            imme = FP.fp_multiply32(((int32_t)input_vector_and_result[iter]) << (NPART - 8), ((int32_t)FP.fp_cos(tmp1 >> (NPART - 8))) << (NPART - 8));
             sum += imme;
             // printf("%d. SUM : %.2f \t", iter, FP.fixed_to_float16(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART))));
-            // printf("Imme : %.2f \t", fixed_to_float32(imme));
+            // printf("Imme %d: %.4f \t",iter, fixed_to_float32(imme));
             // printf("SUM %d : %.2f \t", iter,fixed_to_float32(sum));
-            // printf("tmp : %.2f \t",fixed_to_float32(tmp1));
+            // printf("tmp %d : %.2f \t",iter,fixed_to_float32(tmp1));
             // printf("tmmp2 : %.2f \t",fixed_to_float32(fp_multiply32(float_to_fixed32(1.0),float_to_fixed32(1.0))));
             // printf("tmmp3 : %08x \t", float_to_fixed32(1.0));
         }
 
         // printf("\n\n");
-        result[iter2] = (int16_t)(sum >> 8);
+        result[iter2] = (int16_t)(sum >> (NPART - 8));
     }
     for (iter = 0; iter < block_size; iter++)
     {
         input_vector_and_result[iter] = result[iter];
     }
+}
+
+static const int16_t c[256] = { 16,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,
+ 22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,21,21,21,21,21,21,21,21,21,
+ 21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,20,20,20,20,20,20,20,20,20,
+ 20,20,20,20,20,20,20,20,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18,18,
+ 18,18,18,18,18,18,18,18,18,18,18,17,17,17,17,17,17,17,17,17,17,17,16,16,
+ 16,16,16,16,16,16,16,16,16,15,15,15,15,15,15,15,15,15,14,14,14,14,14,14,
+ 14,14,14,14,13,13,13,13,13,13,13,13,13,12,12,12,12,12,12,12,12,11,11,11,
+ 11,11,11,11,11,11,10,10,10,10,10,10,10,10, 9, 9, 9, 9, 9, 9, 9, 9, 8, 8,
+  8, 8, 8, 8, 8, 8, 7, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5,
+  5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2,
+  2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+
+static void dct_64_256(int16_t *input_vector_and_result, unsigned int block_size)
+{
+    int16_t result[SIGNAL_LEN] = {0};
+    int16_t m = 0, n = 0;
+    int8_t sign = 1;
+    int32_t sum = 0;
+    for (m = 0; m < 64; m++)
+    {
+        sum = 0;
+        for (n = 0; n < SIGNAL_LEN; n++)
+        {
+            sign = INDEX_FORMULA(m,n) / SIGNAL_LEN / 2 % 2 == 0 ? -1 : 1;
+            if ((INDEX_FORMULA(m,n) / SIGNAL_LEN) % 2 == 0)
+            {
+                sum += FP.fp_multiply32((int32_t)(input_vector_and_result[n]) << (NPART - FPART), -sign * (int32_t)(c[INDEX_FORMULA(m,n) % SIGNAL_LEN]) << (NPART - FPART));
+            }
+            else
+            {
+                sum += FP.fp_multiply32((int32_t)(input_vector_and_result[n]) << (NPART - FPART), sign * ((int32_t)(c[SIGNAL_LEN - INDEX_FORMULA(m,n) % SIGNAL_LEN]) << (NPART - FPART)));
+                // LOG_INFO_("%02x * %02x = %02x\n", input_vector_and_result[n], c[n*(m*2+1)], (uint16_t)FP.fp_multiply32((int32_t)(input_vector_and_result[n] << (NPART - 8)), (int32_t)(c[n*(m*2+1)]<< (NPART - 8)) >> (NPART - 8)));
+            }
+        }
+        result[m] = (int16_t)(sum >> (NPART - FPART));
+    }
+    memset(input_vector_and_result, 0, BLOCK_LEN);
+    memcpy(input_vector_and_result, result, 64);
 }
 
 /**
@@ -98,8 +103,9 @@ static void threshold(int16_t *dct_vector, int16_t threshold, uint16_t length)
 
     for (i = 0; i < length; i++)
     {
-        if ((dct_vector[i] << FPART) < 0)
+        if (dct_vector[i] < 0) /* Check if negative*/
         {
+
             if (-dct_vector[i] < threshold)
             {
                 dct_vector[i] = 0;
@@ -137,7 +143,8 @@ int pushBits(huffman_codeword huff_code, uint8_t *bitstring, uint16_t bitstring_
 {
     uint8_t i = huff_code.word_length;
     uint8_t last_byte_bit = bitstring_length % 8;
-    while (i--) {
+    while (i--)
+    {
         bitstring[bitstring_length++ >> 3] |= (((huff_code.word >> i) & 1U) << (7 - last_byte_bit));
         last_byte_bit = bitstring_length % 8;
     }
@@ -149,10 +156,10 @@ int pushBits(huffman_codeword huff_code, uint8_t *bitstring, uint16_t bitstring_
     // uint16_t bitstr_len = bitstring_length;
     // uint8_t bit = 0x0;
     // while (i--) {
-        // bit = ((huff_code.word >> i) & 1U);
-        // bitstring[bitstr_len >> 3] |= (bit << (7 - last_byte_bit));
-        // bitstr_len++;
-        // last_byte_bit = bitstr_len % 8;
+    // bit = ((huff_code.word >> i) & 1U);
+    // bitstring[bitstr_len >> 3] |= (bit << (7 - last_byte_bit));
+    // bitstr_len++;
+    // last_byte_bit = bitstr_len % 8;
     // }
     // return bitstr_len;
 }
@@ -167,7 +174,7 @@ static huffman_metadata huffman_encode(uint8_t *block_and_result, uint16_t lengt
     uint16_t bitstr_len = 0;
     huffman_codeword huff_code1, huff_code2;
     uint8_t remainder;
-    memset(bitstring,0, BLOCK_LEN * 2);
+    memset(bitstring, 0, BLOCK_LEN * 2);
     for (i = 0; i < length; i++)
     {
         // Push first half to final huff code
@@ -177,7 +184,8 @@ static huffman_metadata huffman_encode(uint8_t *block_and_result, uint16_t lengt
         huff_code2 = codebook[secondHalf];
         // // If the huff code exceeds original length - there is no point in doing it
         // // Return success = -1 and keep the block as is
-        if (((bitstr_len >> 3) + huff_code1.word_length + huff_code2.word_length + h_eof.word_length) > (BLOCK_LEN - 1)) {
+        if (((bitstr_len >> 3) + huff_code1.word_length + huff_code2.word_length + h_eof.word_length) > (BLOCK_LEN - 1))
+        {
             h_data.byte_length = BLOCK_LEN;
             h_data.success = -1;
             return h_data;
@@ -202,4 +210,5 @@ const struct compression_driver compression_driver = {
     dct_transform,
     threshold,
     // simple_truncate,
-    huffman_encode};
+    huffman_encode,
+    dct_64_256};
