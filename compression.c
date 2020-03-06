@@ -82,7 +82,6 @@ static void dct_64_256(int16_t *input_vector_and_result, unsigned int block_size
             else
             {
                 sum += FP.fp_multiply32((int32_t)(input_vector_and_result[n]) << (NPART - FPART), sign * ((int32_t)(c[SIGNAL_LEN - INDEX_FORMULA(m,n) % SIGNAL_LEN]) << (NPART - FPART)));
-                // LOG_INFO_("%02x * %02x = %02x\n", input_vector_and_result[n], c[n*(m*2+1)], (uint16_t)FP.fp_multiply32((int32_t)(input_vector_and_result[n] << (NPART - 8)), (int32_t)(c[n*(m*2+1)]<< (NPART - 8)) >> (NPART - 8)));
             }
         }
         result[m] = (int16_t)(sum >> (NPART - FPART));
