@@ -51,7 +51,7 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
     }
 }
 
-static const int16_t c[256] = { 128,181,181,180,180,180,180,180,180,180,180,180,180,180,180,180,180,180,
+static const int16_t c[SIGNAL_LEN] = { 128,181,181,180,180,180,180,180,180,180,180,180,180,180,180,180,180,180,
  179,179,179,179,179,179,179,178,178,178,178,178,177,177,177,177,177,176,
  176,176,176,175,175,175,175,174,174,174,173,173,173,172,172,172,171,171,
  171,170,170,170,169,169,168,168,168,167,167,166,166,165,165,165,164,164,
@@ -74,12 +74,12 @@ static const int16_t c[256] = { 128,181,181,180,180,180,180,180,180,180,180,180,
  */
 static void dct_100_256(int16_t *input_vector_and_result)
 {
-    int16_t result[SIGNAL_LEN] = {0};
+    int16_t result[DCT_COEFF_SIZE] = {0};
     int16_t m = 0, n = 0;
     int8_t sign = 1;
     int16_t sum = 0;
 
-    for (m = 0; m < 100; m++) {
+    for (m = 0; m < DCT_COEFF_SIZE; m++) {
         sum = 0;
         for (n = 0; n < SIGNAL_LEN; n++) {
             sign = INDEX_FORMULA(m,n) / SIGNAL_LEN / 2 % 2 == 0 ? -1 : 1;
@@ -93,7 +93,7 @@ static void dct_100_256(int16_t *input_vector_and_result)
         result[m] = sum;
     }
     memset(input_vector_and_result, 0, BLOCK_LEN);
-    memcpy(input_vector_and_result, result, 100);
+    memcpy(input_vector_and_result, result, DCT_COEFF_SIZE * sizeof(int16_t));
 }
 
 /**

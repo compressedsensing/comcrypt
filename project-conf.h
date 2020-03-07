@@ -12,9 +12,6 @@
 #undef NETSTACK_MAX_ROUTE_ENTRIES
 #define NETSTACK_MAX_ROUTE_ENTRIES 8
 
-#define SIGNAL_LEN 256
-#define BLOCK_LEN SIGNAL_LEN * 2
-
 #ifndef FLOAT
 #define FLOAT 0
 #endif
