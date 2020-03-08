@@ -51,7 +51,7 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
     }
 }
 
-static const int16_t c[SIGNAL_LEN] = { 128,181,181,180,180,180,180,180,180,180,180,180,180,180,180,180,180,180,
+const int16_t c[SIGNAL_LEN] = { 128,181,181,180,180,180,180,180,180,180,180,180,180,180,180,180,180,180,
  179,179,179,179,179,179,179,178,178,178,178,178,177,177,177,177,177,176,
  176,176,176,175,175,175,175,174,174,174,173,173,173,172,172,172,171,171,
  171,170,170,170,169,169,168,168,168,167,167,166,166,165,165,165,164,164,
@@ -75,7 +75,7 @@ static const int16_t c[SIGNAL_LEN] = { 128,181,181,180,180,180,180,180,180,180,1
 static void dct_100_256(int16_t *input_vector_and_result)
 {
     int16_t result[DCT_COEFF_SIZE] = {0};
-    int16_t m = 0, n = 0;
+    uint16_t m = 0, n = 0;
     int8_t sign = 1;
     int16_t sum = 0;
 
@@ -85,9 +85,8 @@ static void dct_100_256(int16_t *input_vector_and_result)
             sign = INDEX_FORMULA(m,n) / SIGNAL_LEN / 2 % 2 == 0 ? -1 : 1;
             if ((INDEX_FORMULA(m,n) / SIGNAL_LEN) % 2 == 0) {
                 sum += FP.fp_multiply(input_vector_and_result[n], -sign * c[INDEX_FORMULA(m,n) % SIGNAL_LEN]);
-            }
-            else {
-                sum += FP.fp_multiply(input_vector_and_result[n], sign * c[SIGNAL_LEN - INDEX_FORMULA(m,n) % SIGNAL_LEN]);
+            } else {
+                sum += FP.fp_multiply(input_vector_and_result[n], sign * c[SIGNAL_LEN - (INDEX_FORMULA(m,n) % SIGNAL_LEN)]);
             }
         }
         result[m] = sum;
@@ -175,11 +174,10 @@ static huffman_metadata huffman_encode(uint8_t *block_and_result, uint16_t lengt
     uint16_t i;
     uint8_t firstHalf;
     uint8_t secondHalf;
-    uint8_t bitstring[BLOCK_LEN * 2];
+    uint8_t bitstring[BLOCK_LEN + 1] = {0};
     uint16_t bitstr_len = 0;
     huffman_codeword huff_code1, huff_code2;
     uint8_t remainder;
-    memset(bitstring, 0, BLOCK_LEN * 2);
     for (i = 0; i < length; i++)
     {
         // Push first half to final huff code

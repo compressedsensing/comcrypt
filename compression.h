@@ -68,15 +68,6 @@ struct compression_driver {
   void (*dct_100_256)(int16_t *input_vector_and_result);
 };
 
-// Huffman variables
-
-// 4 bit resolution
-const huffman_codeword default_huffman_codebook[1 << HUFFMAN_RESOLUTION];
-
-const huffman_codeword default_huffman_eof;
-
-
-
 extern const struct compression_driver COMPRESS;
 
 #endif /* COMPRESSION_H_ */

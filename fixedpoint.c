@@ -40,14 +40,14 @@ static int32_t float_to_fixed32(double input)
  */
 static int16_t fp_multiply(int16_t a, int16_t b)
 {
-    int32_t tmp;
-    int32_t IL;
+    int16_t result = 0;
+    int32_t tmp = 0;
+    // int32_t IL;
 
     // long tmp, Z;
-    int16_t result;
 
     // Save result in double size
-    tmp = (int32_t)a * (int32_t)b;
+    tmp = ((int32_t)a) * ((int32_t)b);
 
     // Take out midder section of bits
     tmp = tmp + (1 << (FPART - 1));
@@ -66,9 +66,9 @@ static int16_t fp_multiply(int16_t a, int16_t b)
     //     Z = INT32_MIN;
     // else
 
-    IL = tmp;
+    // IL = tmp;
 
-    result = IL;
+    result |= ((int16_t)tmp);
 
     return result;
 }
