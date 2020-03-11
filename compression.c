@@ -72,7 +72,7 @@ const int16_t c[SIGNAL_LEN] = { 128,181,181,180,180,180,180,180,180,180,180,180,
  * @param input_vector The input values given in FP representation.
  * @param result The result vector
  */
-static void dct_100_256(int16_t *input_vector_and_result)
+static void fct(int16_t *input_vector_and_result)
 {
     int16_t result[DCT_COEFF_SIZE] = {0};
     uint16_t m = 0, n = 0;
@@ -214,4 +214,4 @@ const struct compression_driver compression_driver = {
     threshold,
     // simple_truncate,
     huffman_encode,
-    dct_100_256};
+    fct};

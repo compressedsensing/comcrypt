@@ -14,9 +14,7 @@
 #define SEND_INTERVAL (5 * CLOCK_SECOND)
 
 static struct simple_udp_connection udp_conn;
-static struct ctimer timer;
 static uint16_t i = 0;
-static uint8_t state = 0;
 static huffman_metadata h_data;
 static uint8_t signal_bytes[BLOCK_LEN] = {0};
 // static uint8_t *signal_bytes;
@@ -104,106 +102,80 @@ static void send_packets() {
   NETSTACK_RADIO.off();
 }
 
-static void
-callback(void *prt)
-{
-  switch (state)
-  {
-  case 0:
-  {
-    COMPRESS.fct(signal);
-    #if DEBUG
-    LOG_INFO_("Transformed data:\n");
-    for (i = 0; i < SIGNAL_LEN; i++)
-    {
-      LOG_INFO_("%04x", signal[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
-    break;
-  }
-  case 1:
-  {
-    COMPRESS.threshold(signal, threshhold, SIGNAL_LEN);
-    #if DEBUG
-    LOG_INFO_("Thresholded data:\n");
-    for (i = 0; i < SIGNAL_LEN; i++)
-    {
-      LOG_INFO_("%04x", signal[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
-    break;
-  }
-  case 2:
-  {
-    convert_to_bytes();
-    #if DEBUG
-    LOG_INFO_("Byte data\n");
-    for (i = 0; i < BLOCK_LEN; i++)
-    {
-      LOG_INFO_("%02x", signal_bytes[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
-    h_data = COMPRESS.huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
-  
-    if (h_data.success == -1) {
-      LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
-    }
-
-    #if DEBUG
-    LOG_INFO_("Encoded data\n");
-    for (i = 0; i < h_data.byte_length; i++)
-    {
-      LOG_INFO_("%02x", signal_bytes[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
-    break;
-  }
-  case 3:
-  {
-    ENCRYPT.aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
-
-    #if DEBUG
-    LOG_INFO_("Final data:\n");
-    for (i = 0; i < h_data.byte_length; i++)
-    {
-      LOG_INFO_("%02x", signal_bytes[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
-    break;
-  }
-  case 4:
-    send_packets();
-    break;
-  default:
-    break;
-  }
-  state++;
-  ctimer_reset(&timer);
-}
-
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(comcrypt_process, ev, data)
 {
   PROCESS_BEGIN();
   NETSTACK_RADIO.off();
   #if DEBUG
-    LOG_INFO_("Initial data:\n");
-    for (i = 0; i < SIGNAL_LEN; i++)
-    {
-      LOG_INFO_("%04x", signal[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
+  LOG_INFO_("Initial data:\n");
+  for (i = 0; i < SIGNAL_LEN; i++)
+  {
+    LOG_INFO_("%04x", signal[i]);
+  }
+  LOG_INFO_("\n");
+  #endif
+
+  COMPRESS.fct(signal);
+  #if DEBUG
+  LOG_INFO_("Transformed data:\n");
+  for (i = 0; i < SIGNAL_LEN; i++)
+  {
+    LOG_INFO_("%04x", signal[i]);
+  }
+  LOG_INFO_("\n");
+  #endif
+
+  COMPRESS.threshold(signal, threshhold, SIGNAL_LEN);
+  #if DEBUG
+  LOG_INFO_("Thresholded data:\n");
+  for (i = 0; i < SIGNAL_LEN; i++)
+  {
+    LOG_INFO_("%04x", signal[i]);
+  }
+  LOG_INFO_("\n");
+  #endif
+
+  convert_to_bytes();
+  #if DEBUG
+  LOG_INFO_("Byte data\n");
+  for (i = 0; i < BLOCK_LEN; i++)
+  {
+    LOG_INFO_("%02x", signal_bytes[i]);
+  }
+  LOG_INFO_("\n");
+  #endif
+  h_data = COMPRESS.huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
+
+  if (h_data.success == -1) {
+    LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
+  }
+
+  #if DEBUG
+  LOG_INFO_("Encoded data\n");
+  for (i = 0; i < h_data.byte_length; i++)
+  {
+    LOG_INFO_("%02x", signal_bytes[i]);
+  }
+  LOG_INFO_("\n");
+  #endif
+
+  ENCRYPT.aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
+
+  #if DEBUG
+  LOG_INFO_("Final data:\n");
+  for (i = 0; i < h_data.byte_length; i++)
+  {
+    LOG_INFO_("%02x", signal_bytes[i]);
+  }
+  LOG_INFO_("\n");
+  #endif
+
   /* Initialize UDP connection */
   simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
                       UDP_SERVER_PORT, udp_rx_callback);
 
-  ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
+  send_packets();
 
   PROCESS_END();
 }
