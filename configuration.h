@@ -1,9 +1,9 @@
 #ifndef CONFIGURATION_H_
 #define CONFIGURATION_H_
 
-#define SIGNAL_LEN 256
+#define SIGNAL_LEN 512
 #define BLOCK_LEN SIGNAL_LEN * 2
-#define DEBUG 0
+#define DEBUG 1
 
 #ifndef LOG_MODULE
 #define LOG_MODULE "Comcrypt"
