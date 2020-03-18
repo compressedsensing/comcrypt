@@ -15,7 +15,7 @@
 #define HUFFMAN_RESOLUTION 4 // Amount of bits to represent symbols
 #define HUFFMAN_BLOCK_MAX_SIZE 170
 #define INDEX_FORMULA(m,n) (m*(n*2+1))
-#define DCT_COEFF_SIZE 64
+#define DCT_COEFF_SIZE 130
 
 struct huffman_metadata {
   uint16_t length;

@@ -40,37 +40,15 @@ static int32_t float_to_fixed32(double input)
  */
 static int16_t fp_multiply(int16_t a, int16_t b)
 {
-    int16_t result = 0;
-    int32_t tmp = 0;
-    // int32_t IL;
-
-    // long tmp, Z;
-
-    // Save result in double size
-    tmp = ((int32_t)a) * ((int32_t)b);
-
-    // Take out midder section of bits
-    tmp = tmp + (1 << (FPART - 1));
-    tmp = tmp >> FPART;
-
-    if(tmp > INT16_MAX){
-        printf("MULTIPLICATION OVERFLOW!!!!");
-    }
-    // #ifdef DEBUG
-    // #endif
-
-    // // Saturate the result if over or under minimum value.
-    // if (tmp > INT32_MAX) /* saturate the result before assignment */
-    //     Z = INT32_MAX;
-    // else if (tmp < INT32_MIN)
-    //     Z = INT32_MIN;
-    // else
-
-    // IL = tmp;
-
-    result |= ((int16_t)tmp);
-
-    return result;
+    // int32_t tmp = 0;
+    // // Save result in double size
+    // tmp = ((int32_t)a) * ((int32_t)b);
+    // // Take out midder section of bits
+    // tmp = (tmp + (1 << (FPART - 1))) >> FPART;
+    // return ((int16_t)tmp);
+    int32_t tmp = (((int32_t)a) * ((int32_t)b) + (1 << (FPART - 1))) >> FPART;
+    return ((int16_t)tmp);
+    // return (int16_t)(((((int32_t)a) * ((int32_t)b)) + (1 << (FPART - 1))) >> FPART);
 }
 
 static int16_t fp_mult(int16_t a, int16_t b)
