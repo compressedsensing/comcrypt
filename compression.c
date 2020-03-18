@@ -82,9 +82,8 @@ static const int16_t c[SIGNAL_LEN] = { 181,255,255,255,255,255,255,255,255,255,2
    6,  5,  4,  3,  3,  2,  1,  0 };
 
 /**
- * @brief Transforms data into the DCT domian using only 100 DCT coefficients
- * @param input_vector The input values given in FP representation.
- * @param result The result vector
+ * @brief Transforms data into the DCT domian using a fast precomputed DCT
+ * @param input_vector_and_result The input values given in FP representation - Will be replaced by the result vector.
  */
 static void fct(int16_t *input_vector_and_result)
 {

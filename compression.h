@@ -61,9 +61,8 @@ struct compression_driver {
    */
   huffman_metadata (* huffman_encode)(uint8_t *block, uint16_t length, const huffman_codeword *codebook, const huffman_codeword h_eof);
   /**
- * @brief Transforms data into the DCT domian using only 64 DCT coefficients
- * @param input_vector The input values given in FP representation.
- * @param result The result vector
+ * @brief Transforms data into the DCT domian using a fast precomputed DCT
+ * @param input_vector_and_result The input values given in FP representation - Will be replaced by the result vector.
  */
   void (*fct)(int16_t *input_vector_and_result);
 };
