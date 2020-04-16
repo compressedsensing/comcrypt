@@ -1,6 +1,6 @@
 TARGET_LIBFILES += -lm
 
-CONTIKI_PROJECT = comcrypt
+CONTIKI_PROJECT = comcrypt_end_to_end
 all: $(CONTIKI_PROJECT)
 
 CONTIKI = ../..
