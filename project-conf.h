@@ -19,7 +19,7 @@
 #define UIP_CONF_UDP_CONNS 2
 
 #ifndef FLOAT
-#define FLOAT 1
+#define FLOAT 0
 #endif
 
 // #undef QUEUEBUF_CONF_NUM

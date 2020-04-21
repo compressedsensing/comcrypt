@@ -47,7 +47,7 @@ struct compression_driver {
    * @brief Transforms data into via the DCT-II transform.
    * https://en.wikipedia.org/wiki/Discrete_cosine_transform#DCT-II
    */
-  void (*dwt_transform)(int16_t *input_vector_and_result, unsigned int block_size);
+  uint16_t (*dwt_transform)(int16_t *input_vector_and_result, unsigned int block_size);
   
   /**
    * @brief Thresholds the DCT vector.
