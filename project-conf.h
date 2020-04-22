@@ -6,6 +6,10 @@
 
 // #undef UIP_CONF_IPV6_RPL
 // #define UIP_CONF_IPV6_RPL 0
+
+#undef AES_128_CONF
+#define AES_128_CONF  aes_128_driver  
+
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #define NBR_TABLE_CONF_MAX_NEIGHBORS 4
 
