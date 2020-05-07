@@ -39,10 +39,10 @@ static void convolution(const int16_t *signal,
  * @param block_size The size of the block to DCT transform
  */
 
-#define sig_len 128 //128 //256 
+#define sig_len SIGNAL_LEN //128 //256 
 #define k_len 12
 #define DWT_FILTER_SIZE 12
-#define DWT_RESULT_SIZE 159 //159 //287 //543
+#define DWT_RESULT_SIZE sig_len+31 //159 //287 //543
 #define BIN_MAP_LEN CIEL_DIVIDE(DWT_RESULT_SIZE, 8)
 static uint16_t dwt_transform(int16_t *input_vector_and_result)
 {
