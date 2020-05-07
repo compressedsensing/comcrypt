@@ -138,15 +138,19 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   LOG_INFO_("\n");
   #endif
 
-  COMPRESS.fct(signal);
-  #if DEBUG
-  LOG_INFO_("Transformed data:\n");
-  for (i = 0; i < SIGNAL_LEN; i++)
-  {
-    LOG_INFO_("%04x", signal[i]);
-  }
-  LOG_INFO_("\n");
-  #endif
+  // COMPRESS.fct(signal);
+  // #if DEBUG
+  // LOG_INFO_("Transformed data:\n");
+  // for (i = 0; i < SIGNAL_LEN; i++)
+  // {
+  //   LOG_INFO_("%04x", signal[i]);
+  // }
+  // LOG_INFO_("\n");
+  // #endif
+
+  int16_t start = clock_time();
+  COMPRESS.dct_transform(signal, SIGNAL_LEN);
+  printf("\n%d\n", (int16_t)(clock_time() - start));
 
   COMPRESS.threshold(signal, threshhold, SIGNAL_LEN);
   #if DEBUG

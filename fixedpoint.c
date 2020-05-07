@@ -119,6 +119,16 @@ static int32_t fp_multiply32(int32_t a, int32_t b)
     return result;
 }
 
+static int32_t fp_16_to_32(int16_t a) {
+    int32_t result = a;
+    return result << (NPART - FPART);
+}
+
+static int16_t fp_32_to_16(int32_t a) {
+    int16_t result = a >> (NPART - FPART);
+    return result;
+}
+
 static int16_t fp_cos(int16_t i)
 {
     i += 0x0192;
@@ -227,5 +237,5 @@ static int16_t fp_cos(int16_t i)
 #if FLOAT
 const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_multiply32, fp_cos, fixed_to_float16, float_to_fixed16,fixed_to_float32, float_to_fixed32};
 #else
-const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_multiply32, fp_cos};
+const struct fixed_point_driver fixed_point_driver = {fp_multiply, fp_multiply32, fp_cos, fp_16_to_32, fp_32_to_16};
 #endif

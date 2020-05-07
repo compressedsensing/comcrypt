@@ -22,10 +22,6 @@
 #undef UIP_CONF_UDP_CONNS
 #define UIP_CONF_UDP_CONNS 2
 
-#ifndef FLOAT
-#define FLOAT 0
-#endif
-
 // #undef QUEUEBUF_CONF_NUM
 // #define QUEUEBUF_CONF_NUM 6
 

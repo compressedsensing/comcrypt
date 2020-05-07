@@ -8,32 +8,37 @@
  */
 static void dct_transform(int16_t *input_vector_and_result, unsigned int block_size)
 {
-    int32_t sum, fac, tmp1, iter, iter2, half, imme;
+    int32_t sum, inner, n, k;
     // int16_t ;
-    int16_t result[SIGNAL_LEN];
+    int16_t result[DCT_COEFF_SIZE];
 
     // Should be precomputed
-    fac = 0x00003243;
+    const int32_t fac = 0x001921;
     //  / block_size; /* PI / block_size*/
-    // fac = float_to_fixed32(3.14159265359) / block_size; /* PI / block_size*/
+    // fac = FP.float_to_fixed32(3.14159265359) / block_size; /* PI / block_size*/
+    // printf("\n\n------------------------\n\n");
+    // printf("%02x", (uint8_t)((fac & 0xFF000000) >> 24));
+    // printf("%02x", (uint8_t)((fac & 0x00FF0000) >> 16));
+    // printf("%02x", (uint8_t)((fac & 0x0000FF00) >> 8));
+    // printf("%02x", (uint8_t)((fac & 0x000000FF) >> 0));
+    // printf("\n\n------------------------\n\n");
 
     // printf("HALF %08x\n\n",float_to_fixed32(3.14159265359));
     // half = 0x00008000;             /* 0.5 */
-    half = 0x00080000; /* 0.5 */
+    const int32_t half = 0x00080000; /* 0.5 */
     // half = float_to_fixed32(0.5);
 
     // printf("Fact: %08x\n", fac);
     // printf("Half: %08x\n", half);
-
+    
     //Set iterators fractions to 0
-    for (iter2 = 0; iter2 < block_size; iter2++)
+    for (k = 0; k < DCT_COEFF_SIZE; k++)
     {
         sum = 0;
-        for (iter = 0; iter < block_size; iter++)
+        for (n = 0; n < block_size; n++)
         {
-            tmp1 = FP.fp_multiply32(FP.fp_multiply32(half + (iter << NPART), (iter2 << NPART)), fac);
-            imme = FP.fp_multiply32(((int32_t)input_vector_and_result[iter]) << (NPART - 8), ((int32_t)FP.fp_cos(tmp1 >> (NPART - 8))) << (NPART - 8));
-            sum += imme;
+            inner = FP.fp_32_to_16(FP.fp_multiply32((half + (n << NPART)) * k, fac));
+            sum += FP.fp_multiply32(FP.fp_16_to_32(input_vector_and_result[n]), FP.fp_16_to_32(FP.fp_cos(inner)));
             // printf("%d. SUM : %.2f \t", iter, FP.fixed_to_float16(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART))));
             // printf("Imme %d: %.4f \t",iter, fixed_to_float32(imme));
             // printf("SUM %d : %.2f \t", iter,fixed_to_float32(sum));
@@ -43,12 +48,10 @@ static void dct_transform(int16_t *input_vector_and_result, unsigned int block_s
         }
 
         // printf("\n\n");
-        result[iter2] = (int16_t)(sum >> (NPART - 8));
+        result[k] = FP.fp_32_to_16(sum);
     }
-    for (iter = 0; iter < block_size; iter++)
-    {
-        input_vector_and_result[iter] = result[iter];
-    }
+    memset(input_vector_and_result, 0, BLOCK_LEN);
+    memcpy(input_vector_and_result, result, DCT_COEFF_SIZE * 2);
 }
 
 static const int16_t c[SIGNAL_LEN] = { 181,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
