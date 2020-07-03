@@ -10,4 +10,7 @@
 #define LOG_LEVEL LOG_LEVEL_INFO
 #endif
 
+// Utility macros
+#define CEIL_DIVIDE(x,y) ((x+y-1)/y) /* x -Input, y - Divisor*/
+
 #endif

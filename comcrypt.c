@@ -133,7 +133,7 @@ callback(void *prt)
   {
   case 0:
   {
-    COMPRESS.fct(signal);
+    fct_transform(signal);
     #if DEBUG
     LOG_INFO_("Transformed data:\n");
     for (i = 0; i < SIGNAL_LEN; i++)
@@ -146,19 +146,6 @@ callback(void *prt)
   }
   case 1:
   {
-    COMPRESS.threshold(signal, threshhold, SIGNAL_LEN);
-    #if DEBUG
-    LOG_INFO_("Thresholded data:\n");
-    for (i = 0; i < SIGNAL_LEN; i++)
-    {
-      LOG_INFO_("%04x", signal[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
-    break;
-  }
-  case 2:
-  {
     convert_to_bytes();
     #if DEBUG
     LOG_INFO_("Byte data\n");
@@ -168,7 +155,7 @@ callback(void *prt)
     }
     LOG_INFO_("\n");
     #endif
-    h_data = COMPRESS.huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
+    h_data = huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
   
     if (h_data.success == -1) {
       LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
@@ -184,9 +171,9 @@ callback(void *prt)
     #endif
     break;
   }
-  case 3:
+  case 2:
   {
-    ENCRYPT.aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
+    aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
 
     #if DEBUG
     LOG_INFO_("Final data:\n");
@@ -198,7 +185,7 @@ callback(void *prt)
     #endif
     break;
   }
-  case 4:
+  case 3:
     send_packets();
     break;
   default:

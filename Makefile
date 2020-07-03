@@ -1,10 +1,11 @@
 TARGET_LIBFILES += -lm
+CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
+CONTIKI = ../..
+
+MAKE_NET = MAKE_NET_NULLNET
 
 CONTIKI_PROJECT = comcrypt
 all: $(CONTIKI_PROJECT)
-
-CONTIKI = ../..
-CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
 PROJECT_SOURCEFILES += encrypt.c compression.c fixedpoint.c
 

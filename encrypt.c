@@ -24,7 +24,7 @@ void incrementCtr(uint8_t *iv_and_result, const uint8_t block_size) {
   }
 }
 
-static void aes_encrypt_ctr(uint8_t *plaintext_and_result, uint8_t *iv, const uint32_t length, const uint8_t *key) {
+void aes_encrypt_ctr(uint8_t *plaintext_and_result, uint8_t *iv, const uint32_t length, const uint8_t *key) {
   const uint8_t block_size = AES_128_BLOCK_SIZE;
   uint8_t i;
   uint8_t tempIv[block_size];
@@ -50,7 +50,3 @@ static void aes_encrypt_ctr(uint8_t *plaintext_and_result, uint8_t *iv, const ui
     xor_blocks(plaintext_and_result + i * block_size, tempIv, block_size);
   } 
 }
-
-const struct encryption_driver encryption_driver = {
-  aes_encrypt_ctr
-};

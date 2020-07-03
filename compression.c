@@ -1,48 +1,159 @@
 #include "./compression.h"
 
+/*Convolution and Decimation */
+static void convolution(const int16_t *signal,
+                        size_t signal_length,
+                        const int16_t *kernel,
+                        size_t kernel_length,
+                        int16_t *result)
+{
+    size_t n;
+    for (n = 1; n < signal_length + kernel_length - 1; n += 2) {
+        size_t kmin, kmax, k;
+        result[n / 2] = 0;
+        kmin = (n >= kernel_length - 1) ? n - (kernel_length - 1) : 0;
+        kmax = (n < signal_length - 1) ? n : signal_length - 1;
+
+        for (k = kmin; k <= kmax; k++) {
+            result[n / 2] += fp_multiply(signal[k], kernel[n - k]);
+        }
+    }
+}
+
+/**
+ * @brief Transforms data into the DWT domian 
+ * @param input_vector The input values given in FP representation.
+ * @param result The result vector
+ * @param block_size The size of the block to DCT transform
+*/
+#define sig_len SIGNAL_LEN //128 //256 
+#define k_len 12
+#define DWT_FILTER_SIZE 12
+#define DWT_RESULT_SIZE sig_len+31 //159 //287 //543
+#define BIN_MAP_LEN CEIL_DIVIDE(DWT_RESULT_SIZE, 8)
+/* rbio 5.5*/
+static const int16_t bio_filter_h[DWT_FILTER_SIZE] = {0, 55, -11, -559, -382, 1952, 3684, 1952, -382, -559, -11, 55};
+static const int16_t bio_filter_g[DWT_FILTER_SIZE] = {0, 162, -32, -223, -1415, 3017, -1415, -223, -32, 162, 0, 0};
+uint16_t dwt_transform(int16_t *input_vector_and_result)
+{
+    int16_t res[DWT_RESULT_SIZE / 2] = {0};
+    int16_t output[DWT_RESULT_SIZE] = {0};
+    uint8_t binary_map[BIN_MAP_LEN] = {0};
+    uint16_t output_length = 0;
+
+    int i, ii, j;
+    ii = 0;
+
+    convolution(input_vector_and_result, sig_len, bio_filter_g, k_len, res);
+
+    for (i = 0; i < (k_len + sig_len - 1) / 2; i++) {
+        output[ii] = res[i];
+        ii++;
+    }
+
+    convolution(input_vector_and_result, sig_len, bio_filter_h, k_len, res);
+
+    //Decimate
+    j = 0;
+    for (i = 0; i < (k_len + sig_len - 1) / 2; i++) {
+        input_vector_and_result[j] = res[i];
+        j++;
+    }
+
+    convolution(input_vector_and_result, (k_len + sig_len - 1) / 2 + 11, bio_filter_g, k_len, res);
+
+    for (i = 0; i < ((k_len + sig_len - 1) / 2 + 11) / 2; i++) {
+        output[ii] = res[i];
+        ii++;
+    }
+
+    convolution(input_vector_and_result, (k_len + sig_len - 1) / 2 + 11, bio_filter_h, k_len, res);
+
+    j = 0;
+    for (i = 0; i < ((k_len + sig_len - 1) / 2 + 11) / 2; i++) {
+        input_vector_and_result[j] = res[i];
+        j++;
+    }
+
+    convolution(input_vector_and_result, ((k_len + sig_len - 1) / 2 + 11) / 2 + 11, bio_filter_g, k_len, res);
+
+    for (i = 0; i < (((k_len + sig_len - 1) / 2 + 11) / 2 + 11) / 2; i++) {
+        output[ii] = res[i];
+        ii++;
+    }
+
+    convolution(input_vector_and_result, ((k_len + sig_len - 1) / 2 + 11) / 2 + 11, bio_filter_h, k_len, res);
+
+    for (i = 0; i < (((k_len + sig_len - 1) / 2 + 11) / 2 + 11) / 2; i++) {
+        output[ii] = res[i];
+        ii++;
+    }
+
+    /* THRESHOLD AND BINARY MAP */
+    int16_t threshold = 25;
+
+    for (i = 0; i < DWT_RESULT_SIZE; i++) {
+        uint8_t bin = 1;
+
+        if (output[i] < 0) {
+            if (-output[i] < threshold) {
+                output[i] = 0;
+                bin = 0;
+            }
+        }
+        else {
+            if (output[i] < threshold) {
+                output[i] = 0;
+                bin = 0;
+            }
+        }
+
+        /* Append binary index correctly */
+        binary_map[i / 8] |= (bin << (8 - (i % 8) - 1));
+
+        /* Add signal to output */
+        if (bin) {
+            output[output_length] = output[i];
+            output_length++;
+        }
+    }
+
+    /* Assign binary map to output*/
+    for (i = 0; i < BIN_MAP_LEN / 2; i++) {
+        input_vector_and_result[i] = (binary_map[(2 * i)] << 8) | binary_map[(2 * i) + 1];
+    }
+
+    for (i = 0; i < output_length; i++) {
+        input_vector_and_result[i + (BIN_MAP_LEN / 2)] = output[i];
+    }
+
+    return output_length + (BIN_MAP_LEN / 2);
+}
+
 /**
  * @brief Transforms data into the DCT domian 
  * @param input_vector The input values given in FP representation.
  * @param result The result vector
  * @param block_size The size of the block to DCT transform
  */
-static void dct_transform(int16_t *input_vector_and_result, unsigned int block_size)
+void dct_transform(int16_t *input_vector_and_result, unsigned int block_size)
 {
     int32_t sum, fac, tmp1, iter, iter2, half, imme;
-    // int16_t ;
     int16_t result[SIGNAL_LEN];
 
     // Should be precomputed
     fac = 0x00003243;
-    //  / block_size; /* PI / block_size*/
-    // fac = float_to_fixed32(3.14159265359) / block_size; /* PI / block_size*/
-
-    // printf("HALF %08x\n\n",float_to_fixed32(3.14159265359));
-    // half = 0x00008000;             /* 0.5 */
     half = 0x00080000; /* 0.5 */
-    // half = float_to_fixed32(0.5);
 
-    // printf("Fact: %08x\n", fac);
-    // printf("Half: %08x\n", half);
-
-    //Set iterators fractions to 0
     for (iter2 = 0; iter2 < block_size; iter2++)
     {
         sum = 0;
         for (iter = 0; iter < block_size; iter++)
         {
-            tmp1 = FP.fp_multiply32(FP.fp_multiply32(half + (iter << NPART), (iter2 << NPART)), fac);
-            imme = FP.fp_multiply32(((int32_t)input_vector_and_result[iter]) << (NPART - 8), ((int32_t)FP.fp_cos(tmp1 >> (NPART - 8))) << (NPART - 8));
+            tmp1 = fp_multiply32(fp_multiply32(half + (iter << NPART), (iter2 << NPART)), fac);
+            imme = fp_multiply32(((int32_t)input_vector_and_result[iter]) << (NPART - 8), ((int32_t)fp_cos(tmp1 >> (NPART - 8))) << (NPART - 8));
             sum += imme;
-            // printf("%d. SUM : %.2f \t", iter, FP.fixed_to_float16(FP.fp_multiply(half + (iter << FPART), (iter2 << FPART))));
-            // printf("Imme %d: %.4f \t",iter, fixed_to_float32(imme));
-            // printf("SUM %d : %.2f \t", iter,fixed_to_float32(sum));
-            // printf("tmp %d : %.2f \t",iter,fixed_to_float32(tmp1));
-            // printf("tmmp2 : %.2f \t",fixed_to_float32(fp_multiply32(float_to_fixed32(1.0),float_to_fixed32(1.0))));
-            // printf("tmmp3 : %08x \t", float_to_fixed32(1.0));
         }
-
-        // printf("\n\n");
         result[iter2] = (int16_t)(sum >> (NPART - 8));
     }
     for (iter = 0; iter < block_size; iter++)
@@ -85,7 +196,7 @@ static const int16_t c[SIGNAL_LEN] = { 181,255,255,255,255,255,255,255,255,255,2
  * @brief Transforms data into the DCT domian using a fast precomputed DCT
  * @param input_vector_and_result The input values given in FP representation - Will be replaced by the result vector.
  */
-static void fct(int16_t *input_vector_and_result)
+void fct_transform(int16_t *input_vector_and_result)
 {
     int16_t result[DCT_COEFF_SIZE] = {0};
     uint16_t n = 0, m = 0;
@@ -97,63 +208,25 @@ static void fct(int16_t *input_vector_and_result)
         for (n = 0; n < SIGNAL_LEN; n++) {
             sign = INDEX_FORMULA(m,n) / SIGNAL_LEN / 2 % 2 == 0 ? -1 : 1;
             if ((INDEX_FORMULA(m,n) / SIGNAL_LEN) % 2 == 0) {
-                result[m] += FP.fp_multiply(input_vector_and_result[n], -sign * c[INDEX_FORMULA(m,n) % SIGNAL_LEN]);
+                result[m] += fp_multiply(input_vector_and_result[n], -sign * c[INDEX_FORMULA(m,n) % SIGNAL_LEN]);
             } else {
-                result[m] += FP.fp_multiply(input_vector_and_result[n], sign * c[SIGNAL_LEN - (INDEX_FORMULA(m,n) % SIGNAL_LEN)]);
+                result[m] += fp_multiply(input_vector_and_result[n], sign * c[SIGNAL_LEN - (INDEX_FORMULA(m,n) % SIGNAL_LEN)]);
+            }
+        }
+        // Threshold
+        if (result[m] < 0) {
+            if (-result[m] < DCT_THRESHOLD) {
+                result[m] = 0;
+            }
+        } else {
+            if (result[m] < DCT_THRESHOLD) {
+                result[m] = 0;
             }
         }
     }
     memset(input_vector_and_result, 0, BLOCK_LEN);
     memcpy(input_vector_and_result, result, DCT_COEFF_SIZE * sizeof(int16_t));
 }
-
-/**
- * @brief Thresholds an array of to a given threshold
- * @param dct_vector The input DCT vector
- * @param threshold The given threshold
- * @param length The length of the DCT vector 
- */
-static void threshold(int16_t *dct_vector, int16_t threshold, uint16_t length)
-{
-    uint16_t i;
-
-    for (i = 0; i < length; i++)
-    {
-        if (dct_vector[i] < 0) /* Check if negative*/
-        {
-
-            if (-dct_vector[i] < threshold)
-            {
-                dct_vector[i] = 0;
-            }
-        }
-        else
-        {
-            if (dct_vector[i] < threshold)
-            {
-                dct_vector[i] = 0;
-            }
-        }
-    }
-}
-
-// static void simple_truncate(FIXED11_21 *dct_vector, FIXED11_21 *result, uint16_t length, uint16_t result_length)
-// {
-//     uint16_t i;
-//     for (i = 0; i < result_length; i++)
-//     {
-//         result[i].full = dct_vector[i].full;
-//     }
-// }
-
-// void mem_copy(uint8_t *dest, uint8_t *src, uint16_t length)
-// {
-//     uint16_t i;
-//     for (i = 0; i < length; i++)
-//     {
-//         dest[i] = src[i];
-//     }
-// }
 
 int pushBits(huffman_codeword huff_code, uint8_t *bitstring, uint16_t bitstring_length)
 {
@@ -180,7 +253,7 @@ int pushBits(huffman_codeword huff_code, uint8_t *bitstring, uint16_t bitstring_
     // return bitstr_len;
 }
 
-static huffman_metadata huffman_encode(uint8_t *block_and_result, uint16_t length, const huffman_codeword *codebook, const huffman_codeword h_eof)
+huffman_metadata huffman_encode(uint8_t *block_and_result, uint16_t length, const huffman_codeword *codebook, const huffman_codeword h_eof)
 {
     huffman_metadata h_data;
     uint16_t i;
@@ -221,9 +294,3 @@ static huffman_metadata huffman_encode(uint8_t *block_and_result, uint16_t lengt
 
     return h_data;
 }
-const struct compression_driver compression_driver = {
-    dct_transform,
-    threshold,
-    // simple_truncate,
-    huffman_encode,
-    fct};
