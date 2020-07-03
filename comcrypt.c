@@ -69,7 +69,7 @@ static int16_t signal[SIGNAL_LEN] = {  939, 939, 940, 942, 943, 942, 940, 942, 9
   941, 939, 940, 939, 941, 941, 939, 937, 936, 931, 931, 928, 931, 931,
   932, 929, 931, 931, 932, 931, 931, 930, 933, 931, 933, 934, 935, 939,
   946, 949, 955, 957, 958, 961, 962, 962 };
-  
+
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
 AUTOSTART_PROCESSES(&comcrypt_process);
@@ -167,8 +167,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   NETSTACK_RADIO.off();
   #if DEBUG
     LOG_INFO_("Initial data:\n");
-    for (i = 0; i < SIGNAL_LEN; i++)
-    {
+    for (i = 0; i < SIGNAL_LEN; i++) {
       LOG_INFO_("%04x", signal[i]);
     }
     LOG_INFO_("\n");
