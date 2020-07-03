@@ -69,25 +69,10 @@ static int16_t signal[SIGNAL_LEN] = {  939, 939, 940, 942, 943, 942, 940, 942, 9
   941, 939, 940, 939, 941, 941, 939, 937, 936, 931, 931, 928, 931, 931,
   932, 929, 931, 931, 932, 931, 931, 930, 933, 931, 933, 934, 935, 939,
   946, 949, 955, 957, 958, 961, 962, 962 };
-static const int16_t threshhold = 12; // 0.003 in Q4.12 format
+  
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
 AUTOSTART_PROCESSES(&comcrypt_process);
-
-static void convert_to_bytes() {
-  // uint16_t tmp = 0;
-  // signal_bytes = (uint8_t*)signal;
-  // for (i = 0; i < BLOCK_LEN; i += 2) {
-  //   tmp = (uint8_t)((signal[i >> 1] & 0xFF00) >> 8);
-  //   signal[i >> 1] <<= 8;
-  //   signal[i >> 1] |= tmp;
-  // }
-  for (i = 0; i < BLOCK_LEN; i += 2)
-  {
-    signal_bytes[i + 0] = (uint8_t)((signal[i >> 1] & 0xFF00) >> 8);
-    signal_bytes[i + 1] = (uint8_t)((signal[i >> 1] & 0x00FF) >> 0);
-  }
-}
 
 static void send_packets() {
   static uint8_t buf[TX_BUFFER_SIZE] = {0};
@@ -106,72 +91,70 @@ static void send_packets() {
 static void
 callback(void *prt)
 {
-  switch (state)
-  {
-  case 0:
-  {
-    fct_transform(signal);
-    #if DEBUG
-    LOG_INFO_("Transformed data:\n");
-    for (i = 0; i < SIGNAL_LEN; i++)
+  switch (state) {
+    case 0:
     {
-      LOG_INFO_("%04x", signal[i]);
+      fct_transform(signal);
+      #if DEBUG
+      LOG_INFO_("Transformed data:\n");
+      for (i = 0; i < SIGNAL_LEN; i++) {
+        LOG_INFO_("%04x", signal[i]);
+      }
+      LOG_INFO_("\n");
+      #endif
+      break;
     }
-    LOG_INFO_("\n");
-    #endif
-    break;
-  }
-  case 1:
-  {
-    convert_to_bytes();
-    #if DEBUG
-    LOG_INFO_("Byte data\n");
-    for (i = 0; i < BLOCK_LEN; i++)
+    case 1:
     {
-      LOG_INFO_("%02x", signal_bytes[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
-    h_data = huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
-  
-    if (h_data.success == -1) {
-      LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
-    }
+      for (i = 0; i < BLOCK_LEN; i += 2) {
+        signal_bytes[i + 0] = (uint8_t)((signal[i >> 1] & 0xFF00) >> 8);
+        signal_bytes[i + 1] = (uint8_t)((signal[i >> 1] & 0x00FF) >> 0);
+      }
+      #if DEBUG
+      LOG_INFO_("Byte data\n");
+      for (i = 0; i < BLOCK_LEN; i++) {
+        LOG_INFO_("%02x", signal_bytes[i]);
+      }
+      LOG_INFO_("\n");
+      #endif
+      h_data = huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
 
-    #if DEBUG
-    LOG_INFO_("Encoded data\n");
-    for (i = 0; i < h_data.byte_length; i++)
-    {
-      LOG_INFO_("%02x", signal_bytes[i]);
-    }
-    LOG_INFO_("\n");
-    #endif
-    break;
-  }
-  case 2:
-  {
-    aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
+      if (h_data.success == -1) {
+        LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
+      }
 
-    #if DEBUG
-    LOG_INFO_("Final data:\n");
-    for (i = 0; i < h_data.byte_length; i++)
-    {
-      LOG_INFO_("%02x", signal_bytes[i]);
+      #if DEBUG
+      LOG_INFO_("Encoded data\n");
+      for (i = 0; i < h_data.byte_length; i++) {
+        LOG_INFO_("%02x", signal_bytes[i]);
+      }
+      LOG_INFO_("\n");
+      #endif
+      break;
     }
-    LOG_INFO_("\n");
-    #endif
-    break;
-  }
-  case 3:
-  {
-    NETSTACK_RADIO.on();
-    send_packets();
-    // First turn radio off when done with transmission
-    // PROCESS_YIELD();
-    NETSTACK_RADIO.off();
-  }
-  default:
-    break;
+    case 2:
+    {
+      aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
+
+      #if DEBUG
+      LOG_INFO_("Final data:\n");
+      for (i = 0; i < h_data.byte_length; i++) {
+        LOG_INFO_("%02x", signal_bytes[i]);
+      }
+      LOG_INFO_("\n");
+      #endif
+      break;
+    }
+    case 3:
+    {
+      NETSTACK_RADIO.on();
+      send_packets();
+      // First turn radio off when done with transmission
+      // PROCESS_YIELD();
+      NETSTACK_RADIO.off();
+    }
+    default:
+      break;
   }
   state++;
   ctimer_reset(&timer);

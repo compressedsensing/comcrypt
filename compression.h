@@ -14,7 +14,7 @@
 #define HUFFMAN_BLOCK_MAX_SIZE 170
 #define INDEX_FORMULA(m,n) (m*(n*2+1))
 #define DCT_COEFF_SIZE 130
-#define DCT_THRESHOLD 0x00000000
+#define DCT_THRESHOLD 12 // 0.003 in Q4.12 format
 
 struct huffman_metadata {
   uint16_t length;
