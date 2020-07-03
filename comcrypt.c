@@ -3,14 +3,14 @@
 #include "./compression.h"
 #include "net/netstack.h"
 #include "net/nullnet/nullnet.h"
-#include "sys/ctimer.h"
+#include "sys/etimer.h"
 #include "sys/log.h"
 #include "./configuration.h"
 #include "./fixedpoint.h"
 
 #define TX_BUFFER_SIZE 102
 
-static struct ctimer timer;
+static struct etimer periodic_timer;
 static uint16_t i = 0;
 static uint8_t state = 0;
 static huffman_metadata h_data;
@@ -88,92 +88,90 @@ static void send_packets() {
   }
 }
 
-static void
-callback(void *prt)
-{
-  switch (state) {
-    case 0:
-    {
-      fct_transform(signal);
-      #if DEBUG
-      LOG_INFO_("Transformed data:\n");
-      for (i = 0; i < SIGNAL_LEN; i++) {
-        LOG_INFO_("%04x", signal[i]);
-      }
-      LOG_INFO_("\n");
-      #endif
-      break;
-    }
-    case 1:
-    {
-      for (i = 0; i < BLOCK_LEN; i += 2) {
-        signal_bytes[i + 0] = (uint8_t)((signal[i >> 1] & 0xFF00) >> 8);
-        signal_bytes[i + 1] = (uint8_t)((signal[i >> 1] & 0x00FF) >> 0);
-      }
-      #if DEBUG
-      LOG_INFO_("Byte data\n");
-      for (i = 0; i < BLOCK_LEN; i++) {
-        LOG_INFO_("%02x", signal_bytes[i]);
-      }
-      LOG_INFO_("\n");
-      #endif
-      h_data = huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
-
-      if (h_data.success == -1) {
-        LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
-      }
-
-      #if DEBUG
-      LOG_INFO_("Encoded data\n");
-      for (i = 0; i < h_data.byte_length; i++) {
-        LOG_INFO_("%02x", signal_bytes[i]);
-      }
-      LOG_INFO_("\n");
-      #endif
-      break;
-    }
-    case 2:
-    {
-      aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
-
-      #if DEBUG
-      LOG_INFO_("Final data:\n");
-      for (i = 0; i < h_data.byte_length; i++) {
-        LOG_INFO_("%02x", signal_bytes[i]);
-      }
-      LOG_INFO_("\n");
-      #endif
-      break;
-    }
-    case 3:
-    {
-      NETSTACK_RADIO.on();
-      send_packets();
-      // First turn radio off when done with transmission
-      // PROCESS_YIELD();
-      NETSTACK_RADIO.off();
-    }
-    default:
-      break;
-  }
-  state++;
-  ctimer_reset(&timer);
-}
-
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(comcrypt_process, ev, data)
 {
   PROCESS_BEGIN();
   NETSTACK_RADIO.off();
   #if DEBUG
-    LOG_INFO_("Initial data:\n");
-    for (i = 0; i < SIGNAL_LEN; i++) {
-      LOG_INFO_("%04x", signal[i]);
+  LOG_INFO_("Initial data:\n");
+  for (i = 0; i < SIGNAL_LEN; i++) {
+    LOG_INFO_("%04x", signal[i]);
+  }
+  LOG_INFO_("\n");
+  #endif
+
+  etimer_set(&periodic_timer, 5 * CLOCK_SECOND);
+
+  while (1) {
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
+    switch (state) {
+      case 0:
+      {
+        fct_transform(signal);
+        #if DEBUG
+        LOG_INFO_("Transformed data:\n");
+        for (i = 0; i < SIGNAL_LEN; i++) {
+          LOG_INFO_("%04x", signal[i]);
+        }
+        LOG_INFO_("\n");
+        #endif
+        break;
+      }
+      case 1:
+      {
+        for (i = 0; i < BLOCK_LEN; i += 2) {
+          signal_bytes[i + 0] = (uint8_t)((signal[i >> 1] & 0xFF00) >> 8);
+          signal_bytes[i + 1] = (uint8_t)((signal[i >> 1] & 0x00FF) >> 0);
+        }
+        #if DEBUG
+        LOG_INFO_("Byte data\n");
+        for (i = 0; i < BLOCK_LEN; i++) {
+          LOG_INFO_("%02x", signal_bytes[i]);
+        }
+        LOG_INFO_("\n");
+        #endif
+        h_data = huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
+
+        if (h_data.success == -1) {
+          LOG_INFO("Huff code was bigger than original block - skipping encoding\n");
+        }
+
+        #if DEBUG
+        LOG_INFO_("Encoded data\n");
+        for (i = 0; i < h_data.byte_length; i++) {
+          LOG_INFO_("%02x", signal_bytes[i]);
+        }
+        LOG_INFO_("\n");
+        #endif
+        break;
+      }
+      case 2:
+      {
+        aes_encrypt_ctr(signal_bytes, iv, h_data.byte_length, key);
+
+        #if DEBUG
+        LOG_INFO_("Final data:\n");
+        for (i = 0; i < h_data.byte_length; i++) {
+          LOG_INFO_("%02x", signal_bytes[i]);
+        }
+        LOG_INFO_("\n");
+        #endif
+        break;
+      }
+      case 3:
+      {
+        NETSTACK_RADIO.on();
+        send_packets();
+        // First turn radio off when done with transmission
+        PROCESS_YIELD();
+        NETSTACK_RADIO.off();
+      }
+      default:
+        break;
     }
-    LOG_INFO_("\n");
-    #endif
-
-  ctimer_set(&timer, 5 * CLOCK_SECOND, callback, NULL);
-
+    state++;
+    etimer_reset(&periodic_timer);
+  }
   PROCESS_END();
 }
