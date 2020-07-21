@@ -10,6 +10,7 @@
 
 #define TX_BUFFER_SIZE 102
 
+static uint16_t dwt_len = 0;
 static uint16_t i = 0;
 static huffman_metadata h_data;
 static uint8_t signal_bytes[BLOCK_LEN] = {0};
@@ -100,7 +101,9 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   LOG_INFO_("\n");
   #endif
 
-  fct_transform(signal);
+
+  dwt_len = dwt_transform(signal);
+  // fct_transform(signal);
   #if DEBUG
   LOG_INFO_("Transformed data:\n");
   for (i = 0; i < SIGNAL_LEN; i++)
@@ -124,7 +127,7 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   }
   LOG_INFO_("\n");
   #endif
-  h_data = huffman_encode(signal_bytes, BLOCK_LEN, huffman_codebook, huffman_eof);
+  h_data = huffman_encode(signal_bytes, 2*dwt_len, huffman_codebook, huffman_eof);
 
   if (h_data.success == -1) {
     LOG_INFO("Huff code was bigger than original block - skipping encoding\n");

@@ -90,7 +90,7 @@ uint16_t dwt_transform(int16_t *input_vector_and_result)
     }
 
     /* THRESHOLD AND BINARY MAP */
-    int16_t threshold = 25;
+    int16_t threshold = 40;
 
     for (i = 0; i < DWT_RESULT_SIZE; i++) {
         uint8_t bin = 1;
