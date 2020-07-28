@@ -5,7 +5,7 @@
 #define LOG_MODULE "App"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
-#define SIGNAL_LEN 128
+#define SIGNAL_LEN 1024
 #define BLOCK_LEN SIGNAL_LEN * 2
 
 PROCESS(receive_process, "Receive process");
