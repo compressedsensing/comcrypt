@@ -3,14 +3,11 @@
 
 #define SIGNAL_LEN 512
 #define BLOCK_LEN SIGNAL_LEN * 2
-
-#ifndef DEBUG
-#define DEBUG 0
-#endif
+#define DEBUG 1
 
 #ifndef LOG_MODULE
 #define LOG_MODULE "Comcrypt"
-#define LOG_LEVEL LOG_LEVEL_NONE
+#define LOG_LEVEL LOG_LEVEL_INFO
 #endif
 
 // Utility macros
