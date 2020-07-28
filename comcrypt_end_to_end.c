@@ -84,6 +84,7 @@ static void send_packets() {
     nullnet_len = i == (h_data.byte_length / TX_BUFFER_SIZE) ? h_data.byte_length % TX_BUFFER_SIZE : TX_BUFFER_SIZE;
     NETSTACK_NETWORK.output(NULL);
   }
+  NETSTACK_RADIO.off();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -153,8 +154,6 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   NETSTACK_RADIO.on();
   send_packets();
   // First turn radio off when done with transmission
-  PROCESS_YIELD();
-  NETSTACK_RADIO.off();
-
+  // PROCESS_YIELD();
   PROCESS_END();
 }
