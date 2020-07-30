@@ -68,24 +68,11 @@ static int16_t signal[SIGNAL_LEN] = {  939, 939, 940, 942, 943, 942, 940, 942, 9
   932, 929, 931, 931, 932, 931, 931, 930, 933, 931, 933, 934, 935, 939,
   946, 949, 955, 957, 958, 961, 962, 962 };
 
+#define SEND_PACKETS_WITH_DELAY 0
+
 /*---------------------------------------------------------------------------*/
 PROCESS(comcrypt_process, "Comcrypt process");
 AUTOSTART_PROCESSES(&comcrypt_process);
-
-static void send_packets() {
-  static uint8_t buf[TX_BUFFER_SIZE] = {0};
-  nullnet_buf = buf;
-  #if DEBUG
-  LOG_INFO("Sending to receiver mote\n");
-  #endif
-  for (i = 0; i < CEIL_DIVIDE(h_data.byte_length,TX_BUFFER_SIZE); i++) {
-    memset(buf, 0, TX_BUFFER_SIZE);
-    memcpy(buf, signal_bytes + (i * TX_BUFFER_SIZE), i == (h_data.byte_length / TX_BUFFER_SIZE) ? h_data.byte_length % TX_BUFFER_SIZE : TX_BUFFER_SIZE);
-    nullnet_len = i == (h_data.byte_length / TX_BUFFER_SIZE) ? h_data.byte_length % TX_BUFFER_SIZE : TX_BUFFER_SIZE;
-    NETSTACK_NETWORK.output(NULL);
-  }
-  NETSTACK_RADIO.off();
-}
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(comcrypt_process, ev, data)
@@ -151,9 +138,34 @@ PROCESS_THREAD(comcrypt_process, ev, data)
   LOG_INFO_("\n");
   #endif
 
+  // Send packets
   NETSTACK_RADIO.on();
-  send_packets();
-  // First turn radio off when done with transmission
-  // PROCESS_YIELD();
+  static uint8_t buf[TX_BUFFER_SIZE] = {0};
+  nullnet_buf = buf;
+
+  #if SEND_PACKETS_WITH_DELAY
+  static struct etimer et;
+  for (i = 0; i < CEIL_DIVIDE(BLOCK_LEN, TX_BUFFER_SIZE); i++) {
+    /* Reset the etimer to trig again in 1 second */
+    memset(buf, 0, TX_BUFFER_SIZE);
+    memcpy(buf, signal_bytes + (i * TX_BUFFER_SIZE), i == (BLOCK_LEN / TX_BUFFER_SIZE) ? BLOCK_LEN % TX_BUFFER_SIZE : TX_BUFFER_SIZE);
+    nullnet_len = i == (BLOCK_LEN / TX_BUFFER_SIZE) ? BLOCK_LEN % TX_BUFFER_SIZE : TX_BUFFER_SIZE;
+    NETSTACK_NETWORK.output(NULL);
+    if((i % 2) == 0) {
+      etimer_set(&et, CLOCK_SECOND/2);
+      NETSTACK_RADIO.off();
+      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+      NETSTACK_RADIO.on();
+    }
+  }
+  #else
+  for (i = 0; i < CEIL_DIVIDE(BLOCK_LEN,TX_BUFFER_SIZE); i++) {
+    memset(buf, 0, TX_BUFFER_SIZE);                             
+    memcpy(buf, signal_bytes + (i * TX_BUFFER_SIZE), i == (BLOCK_LEN / TX_BUFFER_SIZE) ? BLOCK_LEN % TX_BUFFER_SIZE : TX_BUFFER_SIZE);
+    nullnet_len = i == (BLOCK_LEN / TX_BUFFER_SIZE) ? BLOCK_LEN % TX_BUFFER_SIZE : TX_BUFFER_SIZE;
+    NETSTACK_NETWORK.output(NULL);
+  }
+  #endif
+  NETSTACK_RADIO.off();
   PROCESS_END();
 }
