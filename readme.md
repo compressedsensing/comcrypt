@@ -36,6 +36,7 @@ Implementation of:
 - A DCT using a faster precomputed approach called Fast Cosine Transform (FCT) in the code. This needs one to precompute **SIGNAL_LEN** number of the first basis of a DCT. It can be retrieved from [this python script](https://drive.google.com/drive/folders/1vnTTLqZaBvs1BCDa4sogXyUq3D5xcy4m?usp=sharing) which is also mentioned in the referenced repository from earlier. In the **Test signals** folder see the **Mote_test_data_generator** script and retrieve the DCT constants which fit to the signal length.
 - A 4-bit huffman encoding example. To actually use the Huffman encoding method one needs to predetermine the Huffman Codebook. And a Huffman EOF bitstring. This is done by analysing the signals for compression, and creating a histogram over the probability of certain symbols. An example made from the ECG database from the MIT-BIH Arrhythmia Database, for after the DWT transformation can be seen in the following figure:
 ![Image of the distribution of 4 bit symbols in the DWT transformed data](./figures/dwt_huffman_distribution.png?raw=true "Image of the distribution of 4 bit symbols in the DWT transformed data")
+
 From the above histogram one can construct a Huffman tree and from that fill the codebook. One way to do this is with this python package and script:
 ```
 from dahuffman import HuffmanCodec
